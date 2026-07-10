@@ -1,9 +1,16 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { Task, TaskHorizon } from "./task";
 import { getPeriodKey } from "./taskPeriods";
 import { cleanupCurrentTasks, loadTasks, saveTasks } from "./taskStorage";
+import {
+  loadSoundEnabled,
+  playSound,
+  saveSoundEnabled,
+  type SoundEffect,
+} from "./sound";
 
 type Theme = "light" | "dark";
+type RemovalEffect = Exclude<SoundEffect, "add">;
 
 type Horizon = {
   id: TaskHorizon;
@@ -11,6 +18,11 @@ type Horizon = {
 };
 
 const THEME_STORAGE_KEY = "todo-horizons:theme";
+const TASK_EXIT_DURATION = {
+  complete: 180,
+  delete: 140,
+} satisfies Record<RemovalEffect, number>;
+const REDUCED_MOTION_EXIT_DURATION = 100;
 
 const horizons = [
   { id: "today", title: "Today" },
@@ -42,18 +54,22 @@ function getInitialTheme(): Theme {
 
 type HorizonColumnProps = Horizon & {
   tasks: Task[];
+  removingTasks: Readonly<Record<string, RemovalEffect>>;
   onAddTask: (horizon: TaskHorizon, text: string) => void;
-  onCompleteTask: (taskId: string) => void;
-  onDeleteTask: (taskId: string) => void;
+  onRequestRemoval: (
+    taskId: string,
+    effect: RemovalEffect,
+    animate: boolean,
+  ) => void;
 };
 
 function HorizonColumn({
   id,
   title,
   tasks,
+  removingTasks,
   onAddTask,
-  onCompleteTask,
-  onDeleteTask,
+  onRequestRemoval,
 }: HorizonColumnProps) {
   const [draft, setDraft] = useState("");
   const headingId = `${id}-heading`;
@@ -97,19 +113,27 @@ function HorizonColumn({
       {tasks.length > 0 ? (
         <ul className="task-list" aria-label={`${title} tasks`}>
           {tasks.map((task) => (
-            <li className="task-row" key={task.id}>
+            <li
+              className="task-row"
+              key={task.id}
+              data-removing={removingTasks[task.id]}
+            >
               <input
                 className="task-row__checkbox"
                 type="checkbox"
                 aria-label={`Complete task: ${task.text}`}
-                onChange={() => onCompleteTask(task.id)}
+                onClick={(event) =>
+                  onRequestRemoval(task.id, "complete", event.detail > 0)
+                }
               />
               <span className="task-row__text">{task.text}</span>
               <button
                 className="task-row__delete"
                 type="button"
                 aria-label={`Delete task: ${task.text}`}
-                onClick={() => onDeleteTask(task.id)}
+                onClick={(event) =>
+                  onRequestRemoval(task.id, "delete", event.detail > 0)
+                }
               >
                 Delete
               </button>
@@ -128,6 +152,11 @@ function HorizonColumn({
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>(loadTasks);
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
+  const [soundEnabled, setSoundEnabled] = useState(loadSoundEnabled);
+  const [removingTasks, setRemovingTasks] = useState<
+    Readonly<Record<string, RemovalEffect>>
+  >({});
+  const removalTimers = useRef(new Map<string, number>());
 
   const nextTheme = theme === "dark" ? "light" : "dark";
 
@@ -146,6 +175,10 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
+    saveSoundEnabled(soundEnabled);
+  }, [soundEnabled]);
+
+  useEffect(() => {
     function removeStaleTasks() {
       if (document.visibilityState !== "visible") {
         return;
@@ -161,7 +194,20 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    const timers = removalTimers.current;
+
+    return () => {
+      timers.forEach((timer) => window.clearTimeout(timer));
+      timers.clear();
+    };
+  }, []);
+
   function addTask(horizon: TaskHorizon, text: string) {
+    if (soundEnabled) {
+      playSound("add");
+    }
+
     setTasks((currentTasks) => [
       ...currentTasks,
       {
@@ -177,6 +223,44 @@ export default function App() {
     setTasks((currentTasks) =>
       currentTasks.filter((task) => task.id !== taskId),
     );
+    setRemovingTasks((currentTasks) => {
+      const remainingTasks = { ...currentTasks };
+      delete remainingTasks[taskId];
+      return remainingTasks;
+    });
+    removalTimers.current.delete(taskId);
+  }
+
+  function requestTaskRemoval(
+    taskId: string,
+    effect: RemovalEffect,
+    animate: boolean,
+  ) {
+    if (removalTimers.current.has(taskId)) {
+      return;
+    }
+
+    if (soundEnabled) {
+      playSound(effect);
+    }
+
+    if (!animate) {
+      removeTask(taskId);
+      return;
+    }
+
+    setRemovingTasks((currentTasks) => ({
+      ...currentTasks,
+      [taskId]: effect,
+    }));
+
+    const exitDuration = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches
+      ? REDUCED_MOTION_EXIT_DURATION
+      : TASK_EXIT_DURATION[effect];
+    const timer = window.setTimeout(() => removeTask(taskId), exitDuration);
+    removalTimers.current.set(taskId, timer);
   }
 
   return (
@@ -195,37 +279,67 @@ export default function App() {
               key={horizon.id}
               {...horizon}
               tasks={horizonTasks}
+              removingTasks={removingTasks}
               onAddTask={addTask}
-              onCompleteTask={removeTask}
-              onDeleteTask={removeTask}
+              onRequestRemoval={requestTaskRemoval}
             />
           );
         })}
       </div>
-      <button
-        className="theme-toggle"
-        type="button"
-        aria-label={`Switch to ${nextTheme} mode`}
-        aria-pressed={theme === "dark"}
-        onClick={() => setTheme(nextTheme)}
+      <div
+        className="utility-controls"
+        role="group"
+        aria-label="Display and sound settings"
       >
-        <svg
-          className="theme-toggle__icon"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
+        <button
+          className="utility-toggle sound-toggle"
+          type="button"
+          aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+          aria-pressed={soundEnabled}
+          onClick={() => setSoundEnabled((enabled) => !enabled)}
         >
-          <circle className="theme-toggle__sun" cx="12" cy="12" r="4" />
-          <path
-            className="theme-toggle__sun"
-            d="M12 2.75v2.1M12 19.15v2.1M21.25 12h-2.1M4.85 12h-2.1M18.54 5.46l-1.49 1.49M6.95 17.05l-1.49 1.49M18.54 18.54l-1.49-1.49M6.95 6.95 5.46 5.46"
-          />
-          <path
-            className="theme-toggle__moon"
-            d="M20.25 14.65A8.1 8.1 0 0 1 9.35 3.75a8.7 8.7 0 1 0 10.9 10.9Z"
-          />
-        </svg>
-      </button>
+          <svg
+            className="utility-toggle__icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
+            <path
+              className="sound-toggle__enabled"
+              d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.8 7.8 0 0 1 0 11"
+            />
+            <path
+              className="sound-toggle__muted"
+              d="m15.5 9.5 5 5m0-5-5 5"
+            />
+          </svg>
+        </button>
+        <button
+          className="utility-toggle theme-toggle"
+          type="button"
+          aria-label={`Switch to ${nextTheme} mode`}
+          aria-pressed={theme === "dark"}
+          onClick={() => setTheme(nextTheme)}
+        >
+          <svg
+            className="utility-toggle__icon"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <circle className="theme-toggle__sun" cx="12" cy="12" r="4" />
+            <path
+              className="theme-toggle__sun"
+              d="M12 2.75v2.1M12 19.15v2.1M21.25 12h-2.1M4.85 12h-2.1M18.54 5.46l-1.49 1.49M6.95 17.05l-1.49 1.49M18.54 18.54l-1.49-1.49M6.95 6.95 5.46 5.46"
+            />
+            <path
+              className="theme-toggle__moon"
+              d="M20.25 14.65A8.1 8.1 0 0 1 9.35 3.75a8.7 8.7 0 1 0 10.9 10.9Z"
+            />
+          </svg>
+        </button>
+      </div>
     </main>
   );
 }
