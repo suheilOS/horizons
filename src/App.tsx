@@ -15,6 +15,8 @@ type RemovalEffect = Exclude<SoundEffect, "add">;
 type Horizon = {
   id: TaskHorizon;
   title: string;
+  emptyQuote: string;
+  emptySource: string;
 };
 
 const THEME_STORAGE_KEY = "todo-horizons:theme";
@@ -25,11 +27,36 @@ const TASK_EXIT_DURATION = {
 const REDUCED_MOTION_EXIT_DURATION = 100;
 
 const horizons = [
-  { id: "today", title: "Today" },
-  { id: "week", title: "This Week" },
-  { id: "month", title: "This Month" },
-  { id: "year", title: "This Year" },
-  { id: "life", title: "Life" },
+  {
+    id: "today",
+    title: "Today",
+    emptyQuote: "You are but a collective number of days. Whenever a day passes, a part of you passes.",
+    emptySource: "Hasan al-Basri",
+  },
+  {
+    id: "week",
+    title: "This Week",
+    emptyQuote: "The most beloved deeds to God are those most consistent, even if they are small.",
+    emptySource: "Hadith",
+  },
+  {
+    id: "month",
+    title: "This Month",
+    emptyQuote: "Actions are judged by intentions.",
+    emptySource: "Hadith",
+  },
+  {
+    id: "year",
+    title: "This Year",
+    emptyQuote: "Time is like a sword; if you do not cut it, it will cut you.",
+    emptySource: "Al-Shafi'i",
+  },
+  {
+    id: "life",
+    title: "Life",
+    emptyQuote: "Man has nothing except that for which he strives.",
+    emptySource: "Qur'an 53:39",
+  },
 ] satisfies Horizon[];
 
 function isTheme(value: unknown): value is Theme {
@@ -66,6 +93,8 @@ type HorizonColumnProps = Horizon & {
 function HorizonColumn({
   id,
   title,
+  emptyQuote,
+  emptySource,
   tasks,
   removingTasks,
   onAddTask,
@@ -142,7 +171,10 @@ function HorizonColumn({
         </ul>
       ) : (
         <div className="horizon__empty" aria-label={`${title} empty state`}>
-          <p>Nothing here yet.</p>
+          <blockquote className="horizon__quote">
+            <p className="horizon__quote-text">“{emptyQuote}”</p>
+            <cite className="horizon__quote-source">— {emptySource}</cite>
+          </blockquote>
         </div>
       )}
     </section>
