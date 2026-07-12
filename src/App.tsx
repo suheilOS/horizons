@@ -37,13 +37,13 @@ const horizons = [
     id: "week",
     title: "This Week",
     emptyQuote: "The most beloved deeds to God are those most consistent, even if they are small.",
-    emptySource: "Hadith",
+    emptySource: "Bukhari 6464",
   },
   {
     id: "month",
     title: "This Month",
     emptyQuote: "Actions are judged by intentions.",
-    emptySource: "Hadith",
+    emptySource: "Bukhari 1",
   },
   {
     id: "year",
