@@ -48,8 +48,8 @@ const horizons = [
   {
     id: "year",
     title: "This Year",
-    emptyQuote: "Time is like a sword; if you do not cut it, it will cut you.",
-    emptySource: "Al-Shafi'i",
+    emptyQuote: "A year is like a tree: its months are branches, its days are twigs, and its breaths are the fruit.",
+    emptySource: "Ibn al-Qayyim (Al-Fawā'id)",
   },
   {
     id: "life",
