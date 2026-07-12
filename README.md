@@ -2,6 +2,20 @@
 
 A minimalistic, time-horizon-based task management web application that helps you focus on what matters at different scales of time.
 
+## Philosophy
+
+Horizons is built on a rejection of the over-engineered, friction-heavy systems that dominate the modern productivity industry. It embraces two core principles:
+
+- **A Clean Slate Daily:** Every morning is a fresh start. Stale, uncompleted tasks from yesterday do not roll over to clutter your day. Instead, the automatic lifecycle management gives you a clean slate, prompting you to intentionally decide what is important *today* and take immediate action.
+- **Context, Not Complexity:** While the daily focus is a blank canvas, you don't drift. The cascading horizons (**Week**, **Month**, **Year**, and **Life**) sit right beside your day. Having your high-level objectives in sight keeps you aligned with your long-term direction without the weight of complex dashboards, databases, or tags.
+
+### Dependency Minimalism
+
+To mirror this simplicity in the codebase, Horizons enforces a strict minimal-dependency architecture. The application operates almost entirely on native web standards:
+- Synthesizes interactive sounds dynamically via the Web Audio API (zero audio files to download).
+- Relies on pure, high-performance Vanilla CSS for layout and animations.
+- Keeps external dependencies limited strictly to React, TypeScript, Vite, and the `@fontsource/open-runde` typeface.
+
 ## Features
 
 - **Time-Horizon Columns:** Organize tasks by **Today**, **This Week**, **This Month**, **This Year**, and **Life**.
