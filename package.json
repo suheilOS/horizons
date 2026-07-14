@@ -4,7 +4,10 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preview:cloudflare": "bun run build && bunx wrangler@4.110.0 dev",
+    "deploy:check": "bun run build && bunx wrangler@4.110.0 deploy --dry-run",
+    "deploy": "bunx wrangler@4.110.0 deploy"
   },
   "dependencies": {
     "@fontsource/open-runde": "^5.2.1",

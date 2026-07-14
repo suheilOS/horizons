@@ -56,6 +56,54 @@ You need [Bun](https://bun.sh/) installed on your system.
    bun run build
    ```
 
+## Deployment
+
+Horizons deploys to [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/). The deployment has no Worker script or server-side services: Cloudflare serves the Vite output from `dist`, and the application keeps its data in browser `localStorage`.
+
+### Preview the Cloudflare deployment locally
+
+```bash
+bun run preview:cloudflare
+```
+
+This runs the production build through Wrangler and serves it using Cloudflare's SPA routing behavior.
+
+### Validate the deployment
+
+```bash
+bun run deploy:check
+```
+
+The dry run builds the application and validates the Wrangler deployment without publishing it.
+
+### Deploy manually
+
+Authenticate once, then deploy:
+
+```bash
+bunx wrangler@4.110.0 login
+bun run build
+bun run deploy
+```
+
+Wrangler creates or updates the `horizons` Worker and publishes the static assets to its `workers.dev` address. Attach a [Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/) from the Worker's **Settings > Domains & Routes** page in the Cloudflare dashboard.
+
+### Deploy from Git
+
+Cloudflare Workers Builds can deploy every push from GitHub or GitLab:
+
+1. In **Workers & Pages**, select **Create application > Import a repository**.
+2. Select the repository and keep the project root as the build root.
+3. Set the build command to `bun run build`.
+4. Set the deploy command to `bun run deploy`.
+5. Make sure the Worker name is `horizons`, matching `wrangler.jsonc`.
+
+Configure both commands in the Workers Builds Git workflow. The build command creates `dist`, and the deploy command publishes that output without rebuilding it.
+
+### Browser storage and domains
+
+Tasks and preferences belong to the page origin that created them. A `workers.dev` address, a preview address, and a custom domain each have separate `localStorage`. Choose the production custom domain before entering data you intend to keep, and use one canonical hostname consistently.
+
 ## Project Structure
 
 - [`src/App.tsx`](file:///home/suheil/Documents/Dev/experiments/horizons/src/App.tsx): Main React UI component and state coordination.
