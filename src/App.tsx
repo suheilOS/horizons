@@ -15,8 +15,6 @@ type RemovalEffect = Exclude<SoundEffect, "add">;
 type Horizon = {
   id: TaskHorizon;
   title: string;
-  emptyQuote: string;
-  emptySource: string;
 };
 
 const THEME_STORAGE_KEY = "todo-horizons:theme";
@@ -27,36 +25,11 @@ const TASK_EXIT_DURATION = {
 const REDUCED_MOTION_EXIT_DURATION = 100;
 
 const horizons = [
-  {
-    id: "today",
-    title: "Today",
-    emptyQuote: "You are but a collective number of days. Whenever a day passes, a part of you passes.",
-    emptySource: "Hasan al-Basri",
-  },
-  {
-    id: "week",
-    title: "This Week",
-    emptyQuote: "The most beloved deeds to God are those most consistent, even if they are small.",
-    emptySource: "Bukhari 6464",
-  },
-  {
-    id: "month",
-    title: "This Month",
-    emptyQuote: "Actions are judged by intentions.",
-    emptySource: "Bukhari 1",
-  },
-  {
-    id: "year",
-    title: "This Year",
-    emptyQuote: "A year is like a tree: its months are branches, its days are twigs, and its breaths are the fruit.",
-    emptySource: "Ibn al-Qayyim (Al-Fawā'id)",
-  },
-  {
-    id: "life",
-    title: "Life",
-    emptyQuote: "Man has nothing except that for which he strives.",
-    emptySource: "Qur'an 53:39",
-  },
+  { id: "today", title: "Today" },
+  { id: "week", title: "This Week" },
+  { id: "month", title: "This Month" },
+  { id: "year", title: "This Year" },
+  { id: "life", title: "Life" },
 ] satisfies Horizon[];
 
 function isTheme(value: unknown): value is Theme {
@@ -93,8 +66,6 @@ type HorizonColumnProps = Horizon & {
 function HorizonColumn({
   id,
   title,
-  emptyQuote,
-  emptySource,
   tasks,
   removingTasks,
   onAddTask,
@@ -139,7 +110,7 @@ function HorizonColumn({
         />
       </form>
 
-      {tasks.length > 0 ? (
+      {tasks.length > 0 && (
         <ul className="task-list" aria-label={`${title} tasks`}>
           {tasks.map((task) => (
             <li
@@ -169,13 +140,6 @@ function HorizonColumn({
             </li>
           ))}
         </ul>
-      ) : (
-        <div className="horizon__empty" aria-label={`${title} empty state`}>
-          <blockquote className="horizon__quote">
-            <p className="horizon__quote-text">“{emptyQuote}”</p>
-            <cite className="horizon__quote-source">— {emptySource}</cite>
-          </blockquote>
-        </div>
       )}
     </section>
   );

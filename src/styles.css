@@ -134,41 +134,6 @@ input {
   line-height: 1.25;
   text-wrap: balance;
 }
-.horizon__empty {
-  display: flex;
-  min-height: 180px;
-  flex: 1;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-}
-
-.horizon__quote {
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  align-items: center;
-  max-width: 240px;
-}
-
-.horizon__quote-text {
-  margin: 0;
-  font-size: 0.875rem;
-  line-height: 1.5;
-  color: var(--muted-strong);
-  text-wrap: pretty;
-}
-
-.horizon__quote-source {
-  font-style: normal;
-  font-size: 0.75rem;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
 .task-entry {
   margin-bottom: clamp(24px, 3vw, 36px);
 }
