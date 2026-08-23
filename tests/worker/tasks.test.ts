@@ -2,7 +2,7 @@
 
 import { env } from "cloudflare:workers";
 import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import worker from "../../worker/index";
 
 const session = {
@@ -92,6 +92,44 @@ describe("Horizons task API", () => {
     expect(remaining?.count).toBe(0);
   });
 
+  it("forwards sign-out through the auth service", async () => {
+    const response = await request("sign-out-user", "/api/auth/sign-out", {
+      method: "POST",
+    });
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ cookie: "session=sign-out-user" });
+    expect(response.headers.get("set-cookie")).toContain("session=; Max-Age=0");
+  });
+
+  it("protects the sign-out boundary", async () => {
+    const rejected = await request(null, "/api/auth/sign-out", {
+      method: "POST",
+      headers: { Origin: "https://malicious.test" },
+    });
+    expect(rejected.status).toBe(403);
+
+    const wrongMethod = await request(null, "/api/auth/sign-out");
+    expect(wrongMethod.status).toBe(405);
+    expect(wrongMethod.headers.get("allow")).toBe("POST");
+
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    try {
+      const unavailable = await request(
+        null,
+        "/api/auth/sign-out",
+        { method: "POST" },
+        async () => { throw new Error("service unavailable"); },
+      );
+      expect(unavailable.status).toBe(503);
+      expect(await unavailable.json()).toMatchObject({
+        error: { code: "auth_unavailable" },
+      });
+    } finally {
+      errorSpy.mockRestore();
+    }
+  });
+
   it("rejects anonymous and invalid task requests", async () => {
     const anonymous = await request(null, "/api/tasks");
     expect(anonymous.status).toBe(401);
@@ -124,9 +162,12 @@ async function request(
   userId: string | null,
   path: string,
   init: RequestInit = {},
+  signOut: (cookie: string) => Promise<Response> = mockSignOut,
 ): Promise<Response> {
   const headers = new Headers(init.headers);
-  headers.set("Origin", "https://horizons.test");
+  if (!headers.has("Origin")) {
+    headers.set("Origin", "https://horizons.test");
+  }
   if (userId !== null) {
     headers.set("Cookie", `session=${userId}`);
   }
@@ -145,9 +186,16 @@ async function request(
             userId: cookie.slice("session=".length),
           }
         : null,
+      signOut,
     },
   };
   const response = await worker.fetch(request, testEnv, context);
   await waitOnExecutionContext(context);
   return response;
+}
+
+async function mockSignOut(cookie: string): Promise<Response> {
+  return Response.json({ cookie }, {
+    headers: { "Set-Cookie": "session=; Max-Age=0; Path=/" },
+  });
 }

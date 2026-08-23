@@ -9,6 +9,7 @@ type SessionLookup = {
 
 export type AuthServiceBinding = {
   getSession: (cookie: string) => Promise<SessionLookup | null>;
+  signOut: (cookie: string) => Promise<Response>;
 };
 
 type AppBindings = Omit<Env, "AUTH_SERVICE"> & {

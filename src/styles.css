@@ -59,6 +59,12 @@ html {
   background: var(--page-bg);
 }
 
+:root.theme-switching *,
+:root.theme-switching *::before,
+:root.theme-switching *::after {
+  transition: none !important;
+}
+
 body {
   min-width: 320px;
   height: 100%;
@@ -399,14 +405,19 @@ input {
   outline-offset: 3px;
 }
 
-.utility-controls {
+.utility-dock {
   position: fixed;
-  right: max(16px, env(safe-area-inset-right));
-  bottom: max(16px, env(safe-area-inset-bottom));
+  inset-inline-end: max(16px, calc(env(safe-area-inset-right) + 8px));
+  inset-block-end: max(16px, calc(env(safe-area-inset-bottom) + 8px));
   z-index: 10;
   display: flex;
+  align-items: flex-end;
   flex-direction: column;
   gap: 8px;
+}
+
+:dir(rtl) .utility-dock {
+  inset-inline-end: max(16px, calc(env(safe-area-inset-left) + 8px));
 }
 
 .utility-toggle {

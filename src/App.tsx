@@ -3,6 +3,7 @@ import type { Task, TaskHorizon } from "./task";
 import { getTimeZone } from "./taskPeriods";
 import { loadSoundEnabled, playSound, saveSoundEnabled, type SoundEffect } from "./sound";
 import { useTaskList } from "./useTaskList";
+import { UtilityDock } from "./UtilityDock";
 
 type Theme = "light" | "dark";
 type RemovalEffect = Exclude<SoundEffect, "add">;
@@ -156,13 +157,25 @@ export default function App() {
   const nextTheme = theme === "dark" ? "light" : "dark";
 
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
+    const root = document.documentElement;
+    root.dataset.theme = theme;
+    root.classList.add("theme-switching");
+    void root.offsetWidth;
+
+    const frame = requestAnimationFrame(() => {
+      root.classList.remove("theme-switching");
+    });
 
     try {
       localStorage.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // Keep the selected theme for this session if storage is unavailable.
     }
+
+    return () => {
+      cancelAnimationFrame(frame);
+      root.classList.remove("theme-switching");
+    };
   }, [theme]);
 
   useEffect(() => {
@@ -243,9 +256,9 @@ export default function App() {
   }
 
   const utilityControls = (
-    <UtilityControls
+    <UtilityDock
+      authenticated={!loading && !unauthenticated}
       theme={theme}
-      nextTheme={nextTheme}
       soundEnabled={soundEnabled}
       onToggleTheme={() => setTheme(nextTheme)}
       onToggleSound={() => setSoundEnabled((enabled) => !enabled)}
@@ -317,79 +330,6 @@ export default function App() {
       )}
       {utilityControls}
     </main>
-  );
-}
-
-type UtilityControlsProps = {
-  theme: Theme;
-  nextTheme: Theme;
-  soundEnabled: boolean;
-  onToggleTheme: () => void;
-  onToggleSound: () => void;
-};
-
-function UtilityControls({
-  theme,
-  nextTheme,
-  soundEnabled,
-  onToggleTheme,
-  onToggleSound,
-}: UtilityControlsProps) {
-  return (
-    <div
-      className="utility-controls"
-      role="group"
-      aria-label="Display and sound settings"
-    >
-      <button
-        className="utility-toggle sound-toggle"
-        type="button"
-        aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
-        aria-pressed={soundEnabled}
-        onClick={onToggleSound}
-      >
-        <svg
-          className="utility-toggle__icon"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
-          <path
-            className="sound-toggle__enabled"
-            d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.8 7.8 0 0 1 0 11"
-          />
-          <path
-            className="sound-toggle__muted"
-            d="m15.5 9.5 5 5m0-5-5 5"
-          />
-        </svg>
-      </button>
-      <button
-        className="utility-toggle theme-toggle"
-        type="button"
-        aria-label={`Switch to ${nextTheme} mode`}
-        aria-pressed={theme === "dark"}
-        onClick={onToggleTheme}
-      >
-        <svg
-          className="utility-toggle__icon"
-          viewBox="0 0 24 24"
-          aria-hidden="true"
-          focusable="false"
-        >
-          <circle className="theme-toggle__sun" cx="12" cy="12" r="4" />
-          <path
-            className="theme-toggle__sun"
-            d="M12 2.75v2.1M12 19.15v2.1M21.25 12h-2.1M4.85 12h-2.1M18.54 5.46l-1.49 1.49M6.95 17.05l-1.49 1.49M18.54 18.54l-1.49-1.49M6.95 6.95 5.46 5.46"
-          />
-          <path
-            className="theme-toggle__moon"
-            d="M20.25 14.65A8.1 8.1 0 0 1 9.35 3.75a8.7 8.7 0 1 0 10.9 10.9Z"
-          />
-        </svg>
-      </button>
-    </div>
   );
 }
 
