@@ -7,14 +7,14 @@ A minimalistic, time-horizon-based task management web application that helps yo
 Horizons is built on a rejection of the over-engineered, friction-heavy systems that dominate the modern productivity industry. It embraces two core principles:
 
 - **A Clean Slate Daily:** Every morning is a fresh start. Stale, uncompleted tasks from yesterday do not roll over to clutter your day. Instead, the automatic lifecycle management gives you a clean slate, prompting you to intentionally decide what is important *today* and take immediate action.
-- **Context, Not Complexity:** While the daily focus is a blank canvas, you don't drift. The cascading horizons (**Week**, **Month**, **Year**, and **Life**) sit right beside your day. Having your high-level objectives in sight keeps you aligned with your long-term direction without the weight of complex dashboards, databases, or tags.
+- **Context, Not Complexity:** While the daily focus is a blank canvas, you don't drift. The cascading horizons (**Week**, **Month**, **Year**, and **Life**) sit right beside your day. Having your high-level objectives in sight keeps you aligned with your long-term direction without the weight of complex dashboards, tags, or project systems.
 
 ### Dependency Minimalism
 
-To mirror this simplicity in the codebase, Horizons enforces a strict minimal-dependency architecture. The application operates almost entirely on native web standards:
+To mirror this simplicity in the codebase, Horizons keeps the product surface small while using the platform services needed for account-backed sync:
 - Synthesizes interactive sounds dynamically via the Web Audio API (zero audio files to download).
 - Relies on pure, high-performance Vanilla CSS for layout and animations.
-- Keeps external dependencies limited strictly to React, TypeScript, Vite, and the `@fontsource/open-runde` typeface.
+- Uses a small Hono Worker API with Cloudflare D1 for authenticated task storage.
 
 ## Features
 
@@ -23,11 +23,13 @@ To mirror this simplicity in the codebase, Horizons enforces a strict minimal-de
 - **Audio Feedback:** Playful, built-in sound effects for adding, completing, and deleting tasks.
 - **Dark/Light Mode:** Seamless persistent themes that adapt to system preferences.
 - **Fully Accessible:** Crafted with semantic HTML, rich ARIA attributes, keyboard support, and `prefers-reduced-motion` compliance.
-- **Local Storage Persistence:** All tasks and settings are persisted locally in your browser.
+- **Account-backed Tasks:** Tasks sync through the shared Overhawl account; sound and theme preferences remain local to the browser.
 
 ## Tech Stack
 
 - **Framework:** React 19 + TypeScript
+- **Backend:** Hono on Cloudflare Workers
+- **Storage:** Cloudflare D1, scoped by the authenticated Overhawl user
 - **Bundler:** Vite
 - **Styling:** CSS3 (Vanilla)
 - **Audio:** Web Audio API (In-memory synthesized sound effects)
@@ -58,15 +60,51 @@ You need [Bun](https://bun.sh/) installed on your system.
 
 ## Deployment
 
-Horizons deploys to [Cloudflare Workers Static Assets](https://developers.cloudflare.com/workers/static-assets/). The deployment has no Worker script or server-side services: Cloudflare serves the Vite output from `dist`, and the application keeps its data in browser `localStorage`.
+Horizons deploys as a full-stack [Cloudflare Worker](https://developers.cloudflare.com/workers/static-assets/) at `horizons.overhawl.app`. The Worker serves the Vite assets, authenticated task API, and a product-owned D1 database. It calls Overhawl Auth through a Service Binding.
 
-### Preview the Cloudflare deployment locally
+Create the D1 database before the first deployment, then put its ID in `wrangler.jsonc`:
+
+```bash
+bunx wrangler d1 create horizons
+```
+
+Apply the schema locally or remotely with Wrangler's D1 migration commands:
+
+```bash
+bunx wrangler d1 migrations apply horizons --local
+bunx wrangler d1 migrations apply horizons --remote
+```
+
+### Fully local browser testing
+
+Run the local Auth Worker first in one terminal:
+
+```bash
+cd ../overhawl-auth
+bun run migrate:local
+bun run preview:cloudflare
+```
+
+It runs at `http://localhost:8788` with the local Auth D1 database.
+
+Then run Horizons in a second terminal:
+
+```bash
+bun run migrate:local
+bun run preview:local
+```
+
+Horizons runs at `http://localhost:8787`, uses local Horizons D1, and connects to the local Auth Worker through a local Service Binding. The local session cookie is shared between the two localhost ports.
+
+For Vite HMR during local development, run `bun run dev` instead. It uses the same local Worker configuration and serves the app at `http://localhost:5173`.
+
+### Production-like local preview
 
 ```bash
 bun run preview:cloudflare
 ```
 
-This runs the production build through Wrangler and serves it using Cloudflare's SPA routing behavior.
+This uses local Horizons D1 but the deployed Auth Service, so it is useful for checking the production binding rather than for a fully local account flow.
 
 ### Validate the deployment
 
@@ -74,19 +112,18 @@ This runs the production build through Wrangler and serves it using Cloudflare's
 bun run deploy:check
 ```
 
-The dry run builds the application and validates the Wrangler deployment without publishing it.
+The dry run builds the application and validates the Worker deployment without publishing it.
 
 ### Deploy manually
 
 Authenticate once, then deploy:
 
 ```bash
-bunx wrangler@4.110.0 login
-bun run build
+bunx wrangler login
 bun run deploy
 ```
 
-Wrangler creates or updates the `horizons` Worker and publishes the static assets to its `workers.dev` address. Attach a [Custom Domain](https://developers.cloudflare.com/workers/configuration/routing/custom-domains/) from the Worker's **Settings > Domains & Routes** page in the Cloudflare dashboard.
+The configured custom domain is required for the shared `overhawl.app` auth cookie. Do not use the `workers.dev` address as the production app URL.
 
 ### Deploy from Git
 
@@ -100,18 +137,21 @@ Cloudflare Workers Builds can deploy every push from GitHub or GitLab:
 
 Configure both commands in the Workers Builds Git workflow. The build command creates `dist`, and the deploy command publishes that output without rebuilding it.
 
-### Browser storage and domains
+### Browser preferences and task storage
 
-Tasks and preferences belong to the page origin that created them. A `workers.dev` address, a preview address, and a custom domain each have separate `localStorage`. Choose the production custom domain before entering data you intend to keep, and use one canonical hostname consistently.
+Only the theme and sound preferences use browser storage. Tasks are authoritative on the authenticated API and are isolated by account. Each task stores the IANA timezone used to evaluate its horizon expiry.
 
 ## Project Structure
 
-- [`src/App.tsx`](file:///home/suheil/Documents/Dev/experiments/horizons/src/App.tsx): Main React UI component and state coordination.
-- [`src/task.ts`](file:///home/suheil/Documents/Dev/experiments/horizons/src/task.ts): Types for tasks and time horizons.
-- [`src/taskPeriods.ts`](file:///home/suheil/Documents/Dev/experiments/horizons/src/taskPeriods.ts): Calculations for period keys (ISO week, year, month, etc.) and checking task currency.
-- [`src/taskStorage.ts`](file:///home/suheil/Documents/Dev/experiments/horizons/src/taskStorage.ts): `localStorage` synchronization and version migration.
-- [`src/sound.ts`](file:///home/suheil/Documents/Dev/experiments/horizons/src/sound.ts): Web Audio API synthesizer for interactive UI sounds.
-- [`src/styles.css`](file:///home/suheil/Documents/Dev/experiments/horizons/src/styles.css): Complete themeable CSS layout, animations, and transitions.
+- [`src/App.tsx`](src/App.tsx): Main React UI component and state coordination.
+- [`src/task.ts`](src/task.ts): Types for tasks and time horizons.
+- [`src/taskApi.ts`](src/taskApi.ts): Authenticated client for the task API.
+- [`src/taskPeriods.ts`](src/taskPeriods.ts): Timezone-aware period calculations and expiry checks.
+- [`src/useTaskList.ts`](src/useTaskList.ts): Server-backed task loading and mutations.
+- [`worker/`](worker/): Hono Worker, auth middleware, CSRF protection, and task routes.
+- [`migrations/`](migrations/): D1 schema migrations.
+- [`src/sound.ts`](src/sound.ts): Web Audio API synthesizer for interactive UI sounds.
+- [`src/styles.css`](src/styles.css): Complete themeable CSS layout, animations, and transitions.
 
 ## License
 

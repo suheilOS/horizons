@@ -1,0 +1,27 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "horizons-development",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-08-23",
+  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*", "/health"]
+  },
+  "services": [
+    {
+      "binding": "AUTH_SERVICE",
+      "service": "overhawl-auth-development",
+      "entrypoint": "AuthService"
+    }
+  ],
+  "d1_databases": [
+    {
+      "binding": "HORIZONS_DB",
+      "database_name": "horizons",
+      "migrations_dir": "./migrations"
+    }
+  ]
+}

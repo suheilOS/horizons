@@ -1,0 +1,15 @@
+{
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "horizons-test",
+  "main": "./worker/index.ts",
+  "compatibility_date": "2026-08-23",
+  "compatibility_flags": ["global_fetch_strictly_public", "nodejs_compat"],
+  "d1_databases": [
+    {
+      "binding": "HORIZONS_DB",
+      "database_name": "horizons-test",
+      "database_id": "00000000-0000-0000-0000-000000000002",
+      "migrations_dir": "./migrations"
+    }
+  ]
+}

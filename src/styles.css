@@ -7,37 +7,37 @@
 :root {
   color-scheme: light;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --page-bg: #f7f4ef;
-  --workspace-bg: #f9f7f3;
-  --text: #282520;
-  --heading: #2e2a25;
-  --task-text: #343029;
-  --muted: #777066;
-  --muted-strong: #4f493f;
-  --focus: #5e574c;
-  --divider: rgba(43, 38, 31, 0.1);
-  --input-border: rgba(43, 38, 31, 0.14);
-  --checkbox-border: rgba(43, 38, 31, 0.3);
-  --toggle-bg: rgba(249, 247, 243, 0.9);
-  --toggle-border: rgba(43, 38, 31, 0.16);
-  --toggle-shadow: 0 8px 24px rgba(43, 38, 31, 0.12);
+  --page-bg: #f7f7f7;
+  --workspace-bg: #ffffff;
+  --text: #292929;
+  --heading: #1c1c1c;
+  --task-text: #292929;
+  --muted: #707070;
+  --muted-strong: #4b4b4b;
+  --focus: #4a4a4a;
+  --divider: rgba(0, 0, 0, 0.08);
+  --input-border: rgba(0, 0, 0, 0.14);
+  --checkbox-border: rgba(0, 0, 0, 0.3);
+  --toggle-bg: rgba(230, 230, 230, 0.9);
+  --toggle-border: rgba(0, 0, 0, 0.12);
+  --toggle-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --page-bg: #171512;
-  --workspace-bg: #1d1a16;
-  --text: #e7e0d6;
-  --heading: #f1eae0;
-  --task-text: #e8e0d6;
-  --muted: #b7ac9f;
-  --muted-strong: #e0d2bd;
-  --focus: #d8c7ae;
-  --divider: rgba(241, 234, 224, 0.1);
-  --input-border: rgba(241, 234, 224, 0.18);
-  --checkbox-border: rgba(241, 234, 224, 0.34);
-  --toggle-bg: rgba(29, 26, 22, 0.9);
-  --toggle-border: rgba(241, 234, 224, 0.16);
+  --page-bg: #101010;
+  --workspace-bg: #1b1b1b;
+  --text: #e6e6e6;
+  --heading: #f5f5f5;
+  --task-text: #e6e6e6;
+  --muted: #a4a4a4;
+  --muted-strong: #d0d0d0;
+  --focus: #d9d9d9;
+  --divider: rgba(255, 255, 255, 0.1);
+  --input-border: rgba(255, 255, 255, 0.18);
+  --checkbox-border: rgba(255, 255, 255, 0.34);
+  --toggle-bg: rgba(36, 36, 36, 0.9);
+  --toggle-border: rgba(255, 255, 255, 0.14);
   --toggle-shadow: 0 10px 30px rgba(0, 0, 0, 0.34);
 }
 
@@ -100,6 +100,108 @@ input {
 .app {
   height: 100dvh;
   overflow: hidden;
+}
+
+.app-state {
+  display: grid;
+  min-height: 100dvh;
+  place-items: center;
+  padding: 32px 24px 96px;
+  text-align: center;
+}
+
+.app-state__content {
+  width: min(100%, 420px);
+}
+
+.app-state__title {
+  margin: 0;
+  color: var(--heading);
+  font-size: clamp(1.75rem, 6vw, 2.5rem);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  text-wrap: balance;
+}
+
+.app-state__message {
+  max-width: 34rem;
+  margin: 12px auto 0;
+  color: var(--muted);
+  text-wrap: pretty;
+}
+
+.app-state__action {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  margin-top: 20px;
+  padding: 9px 18px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--page-bg);
+  cursor: pointer;
+  font-weight: 600;
+  text-decoration: none;
+  transition:
+    opacity 120ms ease,
+    scale 120ms var(--ease-out);
+}
+
+.app-state__action:focus-visible,
+.app-error button:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.app-state__action:active {
+  scale: 0.96;
+}
+
+.app-state__message[role="status"] {
+  color: var(--muted-strong);
+}
+
+.app-error {
+  position: fixed;
+  top: max(16px, env(safe-area-inset-top));
+  left: 50%;
+  z-index: 20;
+  display: flex;
+  max-width: min(calc(100% - 32px), 520px);
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 10px 12px 10px 16px;
+  border: 1px solid var(--input-border);
+  border-radius: 999px;
+  background: var(--toggle-bg);
+  box-shadow: var(--toggle-shadow);
+  color: var(--muted-strong);
+  transform: translateX(-50%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.app-error span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.app-error button {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--page-bg);
+  cursor: pointer;
+  font-size: 0.8125rem;
+  font-weight: 600;
 }
 
 .workspace {
@@ -390,6 +492,10 @@ input {
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .app-state__action:hover {
+    opacity: 0.85;
+  }
+
   .task-row__checkbox:hover {
     border-color: var(--focus);
   }
@@ -418,7 +524,8 @@ input {
 
   .task-row__checkbox,
   .task-row__delete,
-  .utility-toggle {
+  .utility-toggle,
+  .app-state__action {
     scale: 1;
   }
 

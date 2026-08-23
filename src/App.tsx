@@ -1,13 +1,8 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { Task, TaskHorizon } from "./task";
-import { getPeriodKey } from "./taskPeriods";
-import { cleanupCurrentTasks, loadTasks, saveTasks } from "./taskStorage";
-import {
-  loadSoundEnabled,
-  playSound,
-  saveSoundEnabled,
-  type SoundEffect,
-} from "./sound";
+import { getTimeZone } from "./taskPeriods";
+import { loadSoundEnabled, playSound, saveSoundEnabled, type SoundEffect } from "./sound";
+import { useTaskList } from "./useTaskList";
 
 type Theme = "light" | "dark";
 type RemovalEffect = Exclude<SoundEffect, "add">;
@@ -55,12 +50,8 @@ function getInitialTheme(): Theme {
 type HorizonColumnProps = Horizon & {
   tasks: Task[];
   removingTasks: Readonly<Record<string, RemovalEffect>>;
-  onAddTask: (horizon: TaskHorizon, text: string) => void;
-  onRequestRemoval: (
-    taskId: string,
-    effect: RemovalEffect,
-    animate: boolean,
-  ) => void;
+  onAddTask: (horizon: TaskHorizon, text: string) => Promise<boolean>;
+  onRequestRemoval: (taskId: string, effect: RemovalEffect) => void;
 };
 
 function HorizonColumn({
@@ -75,7 +66,7 @@ function HorizonColumn({
   const headingId = `${id}-heading`;
   const inputId = `${id}-task-input`;
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const text = draft.trim();
@@ -84,8 +75,10 @@ function HorizonColumn({
       return;
     }
 
-    onAddTask(id, text);
-    setDraft("");
+    const added = await onAddTask(id, text);
+    if (added) {
+      setDraft("");
+    }
   }
 
   return (
@@ -121,19 +114,16 @@ function HorizonColumn({
               <input
                 className="task-row__checkbox"
                 type="checkbox"
+                checked={removingTasks[task.id] === "complete"}
                 aria-label={`Complete task: ${task.text}`}
-                onClick={(event) =>
-                  onRequestRemoval(task.id, "complete", event.detail > 0)
-                }
+                onChange={() => onRequestRemoval(task.id, "complete")}
               />
               <span className="task-row__text">{task.text}</span>
               <button
                 className="task-row__delete"
                 type="button"
                 aria-label={`Delete task: ${task.text}`}
-                onClick={(event) =>
-                  onRequestRemoval(task.id, "delete", event.detail > 0)
-                }
+                onClick={() => onRequestRemoval(task.id, "delete")}
               >
                 Delete
               </button>
@@ -146,7 +136,16 @@ function HorizonColumn({
 }
 
 export default function App() {
-  const [tasks, setTasks] = useState<Task[]>(loadTasks);
+  const {
+    tasks,
+    loading,
+    busy,
+    error,
+    unauthenticated,
+    retry,
+    addTask: addTaskToServer,
+    removeTask: removeTaskFromServer,
+  } = useTaskList();
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
   const [soundEnabled, setSoundEnabled] = useState(loadSoundEnabled);
   const [removingTasks, setRemovingTasks] = useState<
@@ -155,10 +154,6 @@ export default function App() {
   const removalTimers = useRef(new Map<string, number>());
 
   const nextTheme = theme === "dark" ? "light" : "dark";
-
-  useEffect(() => {
-    saveTasks(tasks);
-  }, [tasks]);
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
@@ -175,20 +170,18 @@ export default function App() {
   }, [soundEnabled]);
 
   useEffect(() => {
-    function removeStaleTasks() {
-      if (document.visibilityState !== "visible") {
-        return;
+    function refreshTasks() {
+      if (document.visibilityState === "visible") {
+        retry();
       }
-
-      setTasks((currentTasks) => cleanupCurrentTasks(currentTasks));
     }
 
-    document.addEventListener("visibilitychange", removeStaleTasks);
+    document.addEventListener("visibilitychange", refreshTasks);
 
     return () => {
-      document.removeEventListener("visibilitychange", removeStaleTasks);
+      document.removeEventListener("visibilitychange", refreshTasks);
     };
-  }, []);
+  }, [retry]);
 
   useEffect(() => {
     const timers = removalTimers.current;
@@ -199,26 +192,21 @@ export default function App() {
     };
   }, []);
 
-  function addTask(horizon: TaskHorizon, text: string) {
-    if (soundEnabled) {
+  async function addTask(horizon: TaskHorizon, text: string): Promise<boolean> {
+    const added = await addTaskToServer({
+      text,
+      horizon,
+      timeZone: getTimeZone(),
+    });
+
+    if (added && soundEnabled) {
       playSound("add");
     }
 
-    setTasks((currentTasks) => [
-      ...currentTasks,
-      {
-        id: crypto.randomUUID(),
-        text,
-        horizon,
-        periodKey: getPeriodKey(horizon),
-      },
-    ]);
+    return added;
   }
 
-  function removeTask(taskId: string) {
-    setTasks((currentTasks) =>
-      currentTasks.filter((task) => task.id !== taskId),
-    );
+  function clearRemovingTask(taskId: string) {
     setRemovingTasks((currentTasks) => {
       const remainingTasks = { ...currentTasks };
       delete remainingTasks[taskId];
@@ -227,22 +215,13 @@ export default function App() {
     removalTimers.current.delete(taskId);
   }
 
-  function requestTaskRemoval(
-    taskId: string,
-    effect: RemovalEffect,
-    animate: boolean,
-  ) {
+  function requestTaskRemoval(taskId: string, effect: RemovalEffect) {
     if (removalTimers.current.has(taskId)) {
       return;
     }
 
     if (soundEnabled) {
       playSound(effect);
-    }
-
-    if (!animate) {
-      removeTask(taskId);
-      return;
     }
 
     setRemovingTasks((currentTasks) => ({
@@ -255,12 +234,58 @@ export default function App() {
     ).matches
       ? REDUCED_MOTION_EXIT_DURATION
       : TASK_EXIT_DURATION[effect];
-    const timer = window.setTimeout(() => removeTask(taskId), exitDuration);
+    const timer = window.setTimeout(() => {
+      void removeTaskFromServer(taskId).finally(() => {
+        clearRemovingTask(taskId);
+      });
+    }, exitDuration);
     removalTimers.current.set(taskId, timer);
   }
 
+  const utilityControls = (
+    <UtilityControls
+      theme={theme}
+      nextTheme={nextTheme}
+      soundEnabled={soundEnabled}
+      onToggleTheme={() => setTheme(nextTheme)}
+      onToggleSound={() => setSoundEnabled((enabled) => !enabled)}
+    />
+  );
+
+  if (loading) {
+    return (
+      <main className="app app-state">
+        <p className="app-state__message" role="status">
+          Loading your horizons…
+        </p>
+        {utilityControls}
+      </main>
+    );
+  }
+
+  if (unauthenticated) {
+    return <SignedOutState utilityControls={utilityControls} />;
+  }
+
+  if (error !== null && tasks.length === 0) {
+    return (
+      <main className="app app-state">
+        <section className="app-state__content" aria-labelledby="error-title">
+          <h1 className="app-state__title" id="error-title">
+            Horizons is unavailable
+          </h1>
+          <p className="app-state__message">{error}</p>
+          <button className="app-state__action" type="button" onClick={retry}>
+            Try again
+          </button>
+        </section>
+        {utilityControls}
+      </main>
+    );
+  }
+
   return (
-    <main className="app" aria-labelledby="app-title">
+    <main className="app" aria-busy={busy}>
       <h1 className="visually-hidden" id="app-title">
         Tasks
       </h1>
@@ -282,60 +307,128 @@ export default function App() {
           );
         })}
       </div>
-      <div
-        className="utility-controls"
-        role="group"
-        aria-label="Display and sound settings"
+      {error !== null && (
+        <div className="app-error" role="alert">
+          <span>{error}</span>
+          <button type="button" onClick={retry}>
+            Retry
+          </button>
+        </div>
+      )}
+      {utilityControls}
+    </main>
+  );
+}
+
+type UtilityControlsProps = {
+  theme: Theme;
+  nextTheme: Theme;
+  soundEnabled: boolean;
+  onToggleTheme: () => void;
+  onToggleSound: () => void;
+};
+
+function UtilityControls({
+  theme,
+  nextTheme,
+  soundEnabled,
+  onToggleTheme,
+  onToggleSound,
+}: UtilityControlsProps) {
+  return (
+    <div
+      className="utility-controls"
+      role="group"
+      aria-label="Display and sound settings"
+    >
+      <button
+        className="utility-toggle sound-toggle"
+        type="button"
+        aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
+        aria-pressed={soundEnabled}
+        onClick={onToggleSound}
       >
-        <button
-          className="utility-toggle sound-toggle"
-          type="button"
-          aria-label={soundEnabled ? "Mute sounds" : "Enable sounds"}
-          aria-pressed={soundEnabled}
-          onClick={() => setSoundEnabled((enabled) => !enabled)}
+        <svg
+          className="utility-toggle__icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
         >
-          <svg
-            className="utility-toggle__icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
-            <path
-              className="sound-toggle__enabled"
-              d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.8 7.8 0 0 1 0 11"
-            />
-            <path
-              className="sound-toggle__muted"
-              d="m15.5 9.5 5 5m0-5-5 5"
-            />
-          </svg>
-        </button>
-        <button
-          className="utility-toggle theme-toggle"
-          type="button"
-          aria-label={`Switch to ${nextTheme} mode`}
-          aria-pressed={theme === "dark"}
-          onClick={() => setTheme(nextTheme)}
+          <path d="M11 5 6.5 9H3v6h3.5l4.5 4V5Z" />
+          <path
+            className="sound-toggle__enabled"
+            d="M15 9.2a4 4 0 0 1 0 5.6M17.8 6.5a7.8 7.8 0 0 1 0 11"
+          />
+          <path
+            className="sound-toggle__muted"
+            d="m15.5 9.5 5 5m0-5-5 5"
+          />
+        </svg>
+      </button>
+      <button
+        className="utility-toggle theme-toggle"
+        type="button"
+        aria-label={`Switch to ${nextTheme} mode`}
+        aria-pressed={theme === "dark"}
+        onClick={onToggleTheme}
+      >
+        <svg
+          className="utility-toggle__icon"
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          focusable="false"
         >
-          <svg
-            className="utility-toggle__icon"
-            viewBox="0 0 24 24"
-            aria-hidden="true"
-            focusable="false"
-          >
-            <circle className="theme-toggle__sun" cx="12" cy="12" r="4" />
-            <path
-              className="theme-toggle__sun"
-              d="M12 2.75v2.1M12 19.15v2.1M21.25 12h-2.1M4.85 12h-2.1M18.54 5.46l-1.49 1.49M6.95 17.05l-1.49 1.49M18.54 18.54l-1.49-1.49M6.95 6.95 5.46 5.46"
-            />
-            <path
-              className="theme-toggle__moon"
-              d="M20.25 14.65A8.1 8.1 0 0 1 9.35 3.75a8.7 8.7 0 1 0 10.9 10.9Z"
-            />
-          </svg>
-        </button>
-      </div>
+          <circle className="theme-toggle__sun" cx="12" cy="12" r="4" />
+          <path
+            className="theme-toggle__sun"
+            d="M12 2.75v2.1M12 19.15v2.1M21.25 12h-2.1M4.85 12h-2.1M18.54 5.46l-1.49 1.49M6.95 17.05l-1.49 1.49M18.54 18.54l-1.49-1.49M6.95 6.95 5.46 5.46"
+          />
+          <path
+            className="theme-toggle__moon"
+            d="M20.25 14.65A8.1 8.1 0 0 1 9.35 3.75a8.7 8.7 0 1 0 10.9 10.9Z"
+          />
+        </svg>
+      </button>
+    </div>
+  );
+}
+
+type SignedOutStateProps = {
+  utilityControls: ReactNode;
+};
+
+function getAuthOrigin(): string {
+  const configuredOrigin = import.meta.env.VITE_AUTH_ORIGIN;
+  if (configuredOrigin !== undefined) {
+    return configuredOrigin;
+  }
+
+  const host = window.location.hostname;
+  if (import.meta.env.DEV || host === "localhost" || host === "127.0.0.1") {
+    return `http://${host}:8788`;
+  }
+
+  return "https://auth.overhawl.app";
+}
+
+function SignedOutState({ utilityControls }: SignedOutStateProps) {
+  const authUrl = getAuthOrigin();
+  const signInUrl = `${authUrl}/?redirectTo=${encodeURIComponent(window.location.href)}`;
+
+  return (
+    <main className="app app-state">
+      <section className="app-state__content" aria-labelledby="signed-out-title">
+        <h1 className="app-state__title" id="signed-out-title">
+          Sign in to Horizons
+        </h1>
+        <p className="app-state__message">
+          Sign in to keep your horizons available wherever you work.
+        </p>
+        <a className="app-state__action" href={signInUrl}>
+          Sign in
+        </a>
+      </section>
+      {utilityControls}
     </main>
   );
 }

@@ -91,7 +91,7 @@ Life        → life
 
 This keeps expiry logic simple and deterministic.
 
-The implementation must define week boundaries consistently and test them explicitly.
+The implementation must define week boundaries consistently and test them explicitly. Each task stores the IANA timezone captured at creation so the server can evaluate expiry consistently across devices.
 
 ---
 
@@ -102,7 +102,7 @@ Version 1 should support only the following actions:
 1. Add a task to a horizon.
 2. Mark a task as completed.
 3. Delete a task manually.
-4. Persist tasks locally.
+4. Persist tasks for the signed-in Overhawl account.
 5. Remove expired tasks automatically.
 6. Use the app comfortably on desktop and mobile.
 
@@ -124,7 +124,7 @@ type Task = {
   text: string;
   horizon: TaskHorizon;
   periodKey: string;
-  createdAt: string;
+  timeZone: string;
 };
 ```
 
@@ -136,22 +136,13 @@ The exact schema may change slightly during implementation, but additional field
 
 ## Persistence
 
-Version 1 should use local browser storage only.
+Tasks are stored in a Horizons-owned Cloudflare D1 database and scoped to the authenticated Overhawl user. The client treats the API as authoritative and does not persist task data in browser storage.
 
-No backend is required.
+The shared Overhawl Auth Worker provides the session through a Service Binding. Horizons must not access the Auth database directly.
 
-Out of scope:
+Each task stores the IANA timezone captured when it is created. The server uses that timezone to evaluate period expiry consistently across devices.
 
-- authentication
-- user accounts
-- databases
-- cloud sync
-- server APIs
-- cross-device synchronization
-
-The app should work immediately when opened and retain valid tasks between sessions on the same browser.
-
-Storage access should be isolated from presentation code so the persistence layer can be replaced later without rewriting the task interface.
+Theme and sound preferences remain local browser settings because they are presentation preferences, not account task data.
 
 ---
 
@@ -301,8 +292,7 @@ The initial project must not include:
 - streaks
 - gamification
 - collaboration
-- authentication
-- cloud sync
+- notifications
 - drag-and-drop between horizons
 
 These should not be introduced during implementation unless the project brief is intentionally revised first.
@@ -316,7 +306,7 @@ The implementation should prioritize:
 1. Correct expiry behavior.
 2. A small and understandable codebase.
 3. Fast task entry and completion.
-4. Reliable local persistence.
+4. Reliable account-backed persistence.
 5. Strong responsive behavior.
 6. Easy verification after each phase.
 
@@ -350,13 +340,13 @@ Build the five-horizon responsive layout without task behavior.
 
 Add creating, completing, and deleting tasks using in-memory state.
 
-### Phase 3 — Local persistence
+### Phase 3 — Account persistence
 
-Persist and restore tasks from browser storage.
+Connect the shared Overhawl Auth session, Horizons API, and product-owned D1 database.
 
 ### Phase 4 — Expiry system
 
-Implement period keys, stale-task cleanup, and boundary tests.
+Implement timezone-aware period keys, server-side stale-task cleanup, and boundary tests.
 
 ### Phase 5 — Responsive refinement
 
@@ -378,11 +368,12 @@ The first version is complete when:
 - tasks can be added quickly
 - tasks can be completed
 - tasks can be manually deleted
-- valid tasks persist after reload
-- expired tasks disappear correctly
+- valid tasks persist after reload and follow the signed-in account
+- expired tasks disappear correctly across devices
 - Life tasks do not expire
 - the interface works well on desktop and mobile
 - Open Runde is used consistently
-- the codebase contains no unnecessary backend or product complexity
+- unauthenticated users receive a clear sign-in path
+- the codebase contains no unnecessary product complexity
 
 The final result should feel finished precisely because it does very little.

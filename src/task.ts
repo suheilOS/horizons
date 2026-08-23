@@ -5,4 +5,5 @@ export type Task = {
   text: string;
   horizon: TaskHorizon;
   periodKey: string;
+  timeZone: string;
 };
