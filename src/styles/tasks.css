@@ -1,11 +1,13 @@
 .task-entry {
+  position: relative;
   margin-bottom: clamp(24px, 3vw, 36px);
 }
 
 .task-entry__input {
   width: 100%;
   min-height: 42px;
-  padding: 0 0 10px;
+  padding-block: 0 10px;
+  padding-inline: 0 42px;
   border: 0;
   border-bottom: 1px solid var(--input-border);
   border-radius: 0;
@@ -22,6 +24,70 @@
 .task-entry__input:focus-visible {
   border-bottom-color: var(--field-focus);
   box-shadow: none;
+}
+
+.task-entry__input:read-only {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.task-entry__submit {
+  position: absolute;
+  inset-block-start: 1px;
+  inset-inline-end: 0;
+  display: grid;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  place-items: center;
+  transition:
+    color 120ms ease,
+    opacity 120ms ease,
+    scale 120ms var(--ease-out);
+}
+
+.task-entry__submit:focus-visible {
+  border-radius: var(--radius-pill);
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.task-entry__submit:active {
+  scale: 0.96;
+}
+
+.task-entry__submit:disabled {
+  cursor: wait;
+  opacity: 0.72;
+}
+
+.task-entry__plus {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.task-entry__spinner {
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--input-border);
+  border-top-color: var(--muted-strong);
+  border-radius: var(--radius-pill);
+}
+
+@keyframes task-entry-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .task-entry__spinner {
+    animation: task-entry-spin 700ms linear infinite;
+  }
 }
 
 .task-list {

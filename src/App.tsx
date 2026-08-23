@@ -65,11 +65,17 @@ function HorizonColumn({
   onRequestRemoval,
 }: HorizonColumnProps) {
   const [draft, setDraft] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const submittingRef = useRef(false);
   const headingId = `${id}-heading`;
   const inputId = `${id}-task-input`;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
+    if (submittingRef.current) {
+      return;
+    }
 
     const text = draft.trim();
     if (text.length === 0) {
@@ -77,9 +83,16 @@ function HorizonColumn({
       return;
     }
 
-    const added = await onAddTask(id, text);
-    if (added) {
-      setDraft("");
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      const added = await onAddTask(id, text);
+      if (added) {
+        setDraft("");
+      }
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
     }
   }
 
@@ -91,7 +104,7 @@ function HorizonColumn({
         </h2>
       </header>
 
-      <form className="task-entry" onSubmit={handleSubmit}>
+      <form className="task-entry" aria-busy={submitting} onSubmit={handleSubmit}>
         <label className="visually-hidden" htmlFor={inputId}>
           Add a task to {title}
         </label>
@@ -102,7 +115,23 @@ function HorizonColumn({
           onChange={(event) => setDraft(event.currentTarget.value)}
           placeholder="Add a task"
           autoComplete="off"
+          readOnly={submitting}
         />
+        <span className="visually-hidden" role="status" aria-atomic="true">
+          {submitting ? `Adding task to ${title}.` : ""}
+        </span>
+        <button
+          className="task-entry__submit"
+          type="submit"
+          aria-label={`Add task to ${title}`}
+          disabled={submitting}
+        >
+          {submitting ? (
+            <span className="task-entry__spinner" aria-hidden="true" />
+          ) : (
+            <span className="task-entry__plus" aria-hidden="true">+</span>
+          )}
+        </button>
       </form>
 
       {tasks.length > 0 && (

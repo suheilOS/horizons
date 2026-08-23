@@ -13,6 +13,10 @@
     border-color: var(--focus);
   }
 
+  .task-entry__submit:not(:disabled):hover {
+    color: var(--muted-strong);
+  }
+
   .utility-toggle:hover {
     color: var(--muted-strong);
   }
@@ -35,6 +39,7 @@
     filter: none;
   }
 
+  .task-entry__submit,
   .task-row__checkbox,
   .task-row__delete,
   .utility-toggle,
@@ -49,6 +54,7 @@
       opacity 100ms ease;
   }
 
+  .task-entry__submit:active,
   .task-row__checkbox:active,
   .task-row__delete:active,
   .utility-toggle:active {
