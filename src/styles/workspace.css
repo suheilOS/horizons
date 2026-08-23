@@ -1,0 +1,32 @@
+.workspace {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  height: 100%;
+  overflow: hidden;
+  background: var(--page-bg);
+}
+
+.horizon {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  padding: clamp(20px, 2.2vw, 32px);
+}
+
+.horizon + .horizon {
+  box-shadow: -1px 0 0 var(--divider);
+}
+
+.horizon__header {
+  margin-bottom: clamp(24px, 3vw, 36px);
+}
+
+.horizon__title {
+  margin: 0;
+  color: var(--heading);
+  font-size: clamp(1rem, 1.4vw, 1.125rem);
+  font-weight: 600;
+  line-height: 1.25;
+  text-wrap: balance;
+}
