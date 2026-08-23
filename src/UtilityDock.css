@@ -24,8 +24,8 @@
   padding: 16px;
   border: 0;
   border-radius: var(--radius-surface);
-  background: var(--workspace-bg);
-  box-shadow: var(--toggle-shadow);
+  background: var(--surface);
+  box-shadow: var(--menu-shadow);
   color: var(--text);
   outline: none;
   transform-origin: var(--transform-origin);
