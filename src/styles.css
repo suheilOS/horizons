@@ -7,7 +7,9 @@
 :root {
   color-scheme: light;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  --radius-control: 10px;
+  --radius-control: 12px;
+  --radius-surface: 20px;
+  --radius-pill: 999px;
   --page-bg: #f7f7f7;
   --workspace-bg: #ffffff;
   --text: #292929;
@@ -16,7 +18,7 @@
   --muted: #707070;
   --muted-strong: #4b4b4b;
   --focus: #4a4a4a;
-  --field-focus: #7a7a7a;
+  --field-focus: #4a4a4a;
   --divider: rgba(0, 0, 0, 0.08);
   --input-border: rgba(0, 0, 0, 0.14);
   --checkbox-border: rgba(0, 0, 0, 0.3);
@@ -35,7 +37,7 @@
   --muted: #a4a4a4;
   --muted-strong: #d0d0d0;
   --focus: #d9d9d9;
-  --field-focus: #969696;
+  --field-focus: #d9d9d9;
   --divider: rgba(255, 255, 255, 0.1);
   --input-border: rgba(255, 255, 255, 0.18);
   --checkbox-border: rgba(255, 255, 255, 0.34);
@@ -190,8 +192,8 @@ button {
   gap: 12px;
   justify-content: space-between;
   padding: 10px 12px 10px 16px;
-  border: 1px solid var(--input-border);
-  border-radius: 999px;
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--toggle-bg);
   box-shadow: var(--toggle-shadow);
   color: var(--muted-strong);
@@ -211,7 +213,7 @@ button {
   min-height: 32px;
   padding: 4px 10px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--text);
   color: var(--page-bg);
   cursor: pointer;
@@ -274,7 +276,7 @@ button {
 
 .task-entry__input:focus-visible {
   border-bottom-color: var(--field-focus);
-  box-shadow: 0 1px 0 var(--field-focus);
+  box-shadow: none;
 }
 
 .task-list {
@@ -326,7 +328,7 @@ button {
   height: 20px;
   margin: 1px 0 0;
   border: 1px solid var(--checkbox-border);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   appearance: none;
   background: transparent;
   cursor: pointer;
@@ -346,7 +348,7 @@ button {
 .task-row__checkbox::before {
   width: 8px;
   height: 8px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--muted-strong);
   content: "";
   opacity: 0;
@@ -435,8 +437,8 @@ button {
   height: 44px;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--toggle-border);
-  border-radius: 999px;
+  border: 0;
+  border-radius: var(--radius-pill);
   background: var(--toggle-bg);
   box-shadow: var(--toggle-shadow);
   color: var(--heading);
@@ -445,7 +447,6 @@ button {
   -webkit-backdrop-filter: blur(14px);
   transition:
     background-color 160ms ease,
-    border-color 160ms ease,
     color 120ms ease,
     scale 120ms var(--ease-out);
 }
@@ -509,6 +510,12 @@ button {
   opacity: 1;
   scale: 1;
   filter: blur(0);
+}
+
+@supports (corner-shape: squircle) {
+  .app-state__action {
+    corner-shape: squircle;
+  }
 }
 
 @media (hover: hover) and (pointer: fine) {
