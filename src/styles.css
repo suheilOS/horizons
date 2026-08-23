@@ -7,6 +7,7 @@
 :root {
   color-scheme: light;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --radius-control: 10px;
   --page-bg: #f7f7f7;
   --workspace-bg: #ffffff;
   --text: #292929;
@@ -15,6 +16,7 @@
   --muted: #707070;
   --muted-strong: #4b4b4b;
   --focus: #4a4a4a;
+  --field-focus: #7a7a7a;
   --divider: rgba(0, 0, 0, 0.08);
   --input-border: rgba(0, 0, 0, 0.14);
   --checkbox-border: rgba(0, 0, 0, 0.3);
@@ -33,6 +35,7 @@
   --muted: #a4a4a4;
   --muted-strong: #d0d0d0;
   --focus: #d9d9d9;
+  --field-focus: #969696;
   --divider: rgba(255, 255, 255, 0.1);
   --input-border: rgba(255, 255, 255, 0.18);
   --checkbox-border: rgba(255, 255, 255, 0.34);
@@ -84,6 +87,10 @@ select {
 button,
 input {
   color: inherit;
+}
+
+button {
+  line-height: 1;
 }
 
 #root {
@@ -145,11 +152,13 @@ input {
   margin-top: 20px;
   padding: 9px 18px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-control);
   background: var(--text);
   color: var(--page-bg);
   cursor: pointer;
   font-weight: 600;
+  line-height: 1;
+  text-box: trim-both cap alphabetic;
   text-decoration: none;
   transition:
     opacity 120ms ease,
@@ -264,8 +273,8 @@ input {
 }
 
 .task-entry__input:focus-visible {
-  border-bottom-color: var(--focus);
-  box-shadow: 0 1px 0 var(--focus);
+  border-bottom-color: var(--field-focus);
+  box-shadow: 0 1px 0 var(--field-focus);
 }
 
 .task-list {

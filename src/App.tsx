@@ -144,6 +144,7 @@ export default function App() {
     error,
     unauthenticated,
     retry,
+    refresh,
     addTask: addTaskToServer,
     removeTask: removeTaskFromServer,
   } = useTaskList();
@@ -185,7 +186,7 @@ export default function App() {
   useEffect(() => {
     function refreshTasks() {
       if (document.visibilityState === "visible") {
-        retry();
+        refresh();
       }
     }
 
@@ -194,7 +195,7 @@ export default function App() {
     return () => {
       document.removeEventListener("visibilitychange", refreshTasks);
     };
-  }, [retry]);
+  }, [refresh]);
 
   useEffect(() => {
     const timers = removalTimers.current;
@@ -268,9 +269,12 @@ export default function App() {
   if (loading) {
     return (
       <main className="app app-state">
-        <p className="app-state__message" role="status">
-          Loading your horizons…
-        </p>
+        <section className="app-state__content" aria-labelledby="loading-title">
+          <h1 className="app-state__title" id="loading-title">Horizons</h1>
+          <p className="app-state__message" role="status">
+            Loading your horizons…
+          </p>
+        </section>
         {utilityControls}
       </main>
     );

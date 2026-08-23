@@ -9,6 +9,10 @@ import {
 } from "./taskApi";
 
 type TaskMutation = () => Promise<void>;
+type LoadRequest = {
+  id: number;
+  mode: "foreground" | "background";
+};
 
 export type TaskList = {
   tasks: Task[];
@@ -17,6 +21,7 @@ export type TaskList = {
   error: string | null;
   unauthenticated: boolean;
   retry: () => void;
+  refresh: () => void;
   addTask: (input: NewTaskInput) => Promise<boolean>;
   removeTask: (id: string) => Promise<boolean>;
 };
@@ -27,7 +32,10 @@ export function useTaskList(): TaskList {
   const [activeMutations, setActiveMutations] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [unauthenticated, setUnauthenticated] = useState(false);
-  const [reloadToken, setReloadToken] = useState(0);
+  const [loadRequest, setLoadRequest] = useState<LoadRequest>({
+    id: 0,
+    mode: "foreground",
+  });
   const dataGenerationRef = useRef(0);
 
   useEffect(() => {
@@ -35,7 +43,9 @@ export function useTaskList(): TaskList {
     dataGenerationRef.current = generation;
     const controller = new AbortController();
 
-    setLoading(true);
+    if (loadRequest.mode === "foreground") {
+      setLoading(true);
+    }
     setError(null);
 
     void fetchTasks(controller.signal)
@@ -61,7 +71,7 @@ export function useTaskList(): TaskList {
       });
 
     return () => controller.abort();
-  }, [reloadToken]);
+  }, [loadRequest]);
 
   const runMutation = useCallback(async (operation: TaskMutation): Promise<boolean> => {
     dataGenerationRef.current += 1;
@@ -104,7 +114,17 @@ export function useTaskList(): TaskList {
   }, [runMutation]);
 
   const retry = useCallback(() => {
-    setReloadToken((current) => current + 1);
+    setLoadRequest((current) => ({
+      id: current.id + 1,
+      mode: "foreground",
+    }));
+  }, []);
+
+  const refresh = useCallback(() => {
+    setLoadRequest((current) => ({
+      id: current.id + 1,
+      mode: "background",
+    }));
   }, []);
 
   return {
@@ -114,6 +134,7 @@ export function useTaskList(): TaskList {
     error,
     unauthenticated,
     retry,
+    refresh,
     addTask,
     removeTask,
   };
