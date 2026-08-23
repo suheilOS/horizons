@@ -108,6 +108,8 @@ describe("Horizons task API", () => {
       headers: { Origin: "https://malicious.test" },
     });
     expect(rejected.status).toBe(403);
+    expect(rejected.headers.get("cache-control")).toBe("no-store");
+    expect(rejected.headers.get("x-content-type-options")).toBe("nosniff");
 
     const wrongMethod = await request(null, "/api/auth/sign-out");
     expect(wrongMethod.status).toBe(405);
@@ -133,6 +135,8 @@ describe("Horizons task API", () => {
   it("rejects anonymous and invalid task requests", async () => {
     const anonymous = await request(null, "/api/tasks");
     expect(anonymous.status).toBe(401);
+    expect(anonymous.headers.get("cache-control")).toBe("no-store");
+    expect(anonymous.headers.get("x-content-type-options")).toBe("nosniff");
 
     const invalid = await request("validation-user", "/api/tasks", {
       method: "POST",

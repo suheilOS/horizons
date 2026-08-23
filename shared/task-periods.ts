@@ -60,19 +60,6 @@ export function getTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || DEFAULT_TIME_ZONE;
 }
 
-export function isValidTimeZone(value: unknown): value is string {
-  if (typeof value !== "string" || value.length === 0) {
-    return false;
-  }
-
-  try {
-    new Intl.DateTimeFormat("en-US", { timeZone: value }).format();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 export function getPeriodKey(
   horizon: TaskHorizon,
   date = new Date(),

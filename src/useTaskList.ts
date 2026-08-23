@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Task } from "./task";
+import type { Task } from "../shared/task";
 import {
   createTask,
   deleteTask,

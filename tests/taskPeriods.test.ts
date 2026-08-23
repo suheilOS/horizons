@@ -1,5 +1,35 @@
 import { describe, expect, it } from "vitest";
-import { getPeriodKey, isValidTimeZone } from "../src/taskPeriods";
+import { getPeriodKey } from "../shared/task-periods";
+import {
+  TASK_HORIZONS,
+  isTask,
+  isTaskHorizon,
+  isValidTimeZone,
+} from "../shared/task";
+
+describe("task contracts", () => {
+  it("uses the canonical horizon list for runtime validation", () => {
+    expect(TASK_HORIZONS.every(isTaskHorizon)).toBe(true);
+    expect(isTaskHorizon("later")).toBe(false);
+  });
+
+  it("validates tasks at API boundaries", () => {
+    expect(isTask({
+      id: "task-1",
+      text: "Ship shared contracts",
+      horizon: "week",
+      periodKey: "2026-W34",
+      timeZone: "Europe/Istanbul",
+    })).toBe(true);
+    expect(isTask({
+      id: "task-2",
+      text: "Reject an unknown horizon",
+      horizon: "later",
+      periodKey: "later",
+      timeZone: "Europe/Istanbul",
+    })).toBe(false);
+  });
+});
 
 describe("task periods", () => {
   it("uses the task timezone for calendar boundaries", () => {

@@ -18,5 +18,5 @@
     "noUncheckedSideEffectImports": true,
     "moduleResolution": "bundler"
   },
-  "include": ["src"]
+  "include": ["src", "shared"]
 }

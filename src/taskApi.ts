@@ -1,5 +1,4 @@
-import type { Task, TaskHorizon } from "./task";
-import { isValidTimeZone } from "./taskPeriods";
+import { isTask, type Task, type TaskHorizon } from "../shared/task";
 
 export type NewTaskInput = {
   text: string;
@@ -108,30 +107,6 @@ function readTaskResponse(response: { body: unknown }): TaskResponse {
   }
 
   return { task: response.body.task };
-}
-
-function isTask(value: unknown): value is Task {
-  if (!isRecord(value)) {
-    return false;
-  }
-
-  return (
-    typeof value.id === "string" &&
-    typeof value.text === "string" &&
-    isTaskHorizon(value.horizon) &&
-    typeof value.periodKey === "string" &&
-    isValidTimeZone(value.timeZone)
-  );
-}
-
-function isTaskHorizon(value: unknown): value is TaskHorizon {
-  return (
-    value === "today" ||
-    value === "week" ||
-    value === "month" ||
-    value === "year" ||
-    value === "life"
-  );
 }
 
 function readErrorMessage(value: unknown): string | null {

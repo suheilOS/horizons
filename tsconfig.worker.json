@@ -15,5 +15,5 @@
     "noUncheckedSideEffectImports": true,
     "moduleResolution": "bundler"
   },
-  "include": ["worker", "src/task.ts", "src/taskPeriods.ts", "worker-configuration.d.ts"]
+  "include": ["worker", "shared", "worker-configuration.d.ts"]
 }

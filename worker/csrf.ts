@@ -1,5 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import type { AppEnv } from "./auth";
+import { jsonError } from "./http";
 
 export const requireSameOrigin = createMiddleware<AppEnv>(async (context, next) => {
   if (
@@ -25,7 +26,7 @@ export const requireSameOrigin = createMiddleware<AppEnv>(async (context, next) 
     return;
   }
 
-  return context.json({
+  return jsonError({
     error: {
       code: "csrf_rejected",
       message: "The request origin is not allowed.",

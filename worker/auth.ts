@@ -1,5 +1,5 @@
-import type { Context } from "hono";
 import { createMiddleware } from "hono/factory";
+import { jsonError } from "./http";
 
 type SessionLookup = {
   userId: string;
@@ -27,7 +27,7 @@ export type AppEnv = {
 export const requireAuth = createMiddleware<AppEnv>(async (context, next) => {
   const cookie = context.req.header("Cookie");
   if (cookie === undefined || cookie.length === 0) {
-    return unauthorized(context);
+    return unauthorized();
   }
 
   let session: SessionLookup | null;
@@ -39,7 +39,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (context, next) => {
       error: error instanceof Error ? error.message : String(error),
     }));
 
-    return context.json({
+    return jsonError({
       error: {
         code: "auth_unavailable",
         message: "Authentication is temporarily unavailable. Try again.",
@@ -48,7 +48,7 @@ export const requireAuth = createMiddleware<AppEnv>(async (context, next) => {
   }
 
   if (session === null || session.userId.length === 0) {
-    return unauthorized(context);
+    return unauthorized();
   }
 
   context.set("session", session);
@@ -56,8 +56,8 @@ export const requireAuth = createMiddleware<AppEnv>(async (context, next) => {
   await next();
 });
 
-function unauthorized(context: Context<AppEnv>): Response {
-  return context.json({
+function unauthorized(): Response {
+  return jsonError({
     error: {
       code: "unauthorized",
       message: "Sign in to use Horizons.",

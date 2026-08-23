@@ -1,7 +1,12 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
-import { getPeriodKey, isTaskCurrent, isValidTimeZone } from "../src/taskPeriods";
-import type { Task, TaskHorizon } from "../src/task";
+import { getPeriodKey, isTaskCurrent } from "../shared/task-periods";
+import {
+  isTaskHorizon,
+  isValidTimeZone,
+  type Task,
+  type TaskHorizon,
+} from "../shared/task";
 import { requireAuth, type AppEnv } from "./auth";
 import { requireSameOrigin } from "./csrf";
 
@@ -177,16 +182,6 @@ function toTask(row: TaskRow): Task {
     periodKey: row.period_key,
     timeZone: row.time_zone,
   };
-}
-
-function isTaskHorizon(value: unknown): value is TaskHorizon {
-  return (
-    value === "today" ||
-    value === "week" ||
-    value === "month" ||
-    value === "year" ||
-    value === "life"
-  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -144,9 +144,9 @@ Only the theme and sound preferences use browser storage. Tasks are authoritativ
 ## Project Structure
 
 - [`src/App.tsx`](src/App.tsx): Main React UI component and state coordination.
-- [`src/task.ts`](src/task.ts): Types for tasks and time horizons.
+- [`shared/task.ts`](shared/task.ts): Shared task contracts and runtime validation.
+- [`shared/task-periods.ts`](shared/task-periods.ts): Timezone-aware period calculations and expiry checks.
 - [`src/taskApi.ts`](src/taskApi.ts): Authenticated client for the task API.
-- [`src/taskPeriods.ts`](src/taskPeriods.ts): Timezone-aware period calculations and expiry checks.
 - [`src/useTaskList.ts`](src/useTaskList.ts): Server-backed task loading and mutations.
 - [`worker/`](worker/): Hono Worker, auth middleware, CSRF protection, and task routes.
 - [`migrations/`](migrations/): D1 schema migrations.

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
-import type { Task, TaskHorizon } from "./task";
-import { getTimeZone } from "./taskPeriods";
+import { TASK_HORIZONS, type Task, type TaskHorizon } from "../shared/task";
+import { getTimeZone } from "../shared/task-periods";
 import { loadSoundEnabled, playSound, saveSoundEnabled, type SoundEffect } from "./sound";
 import { useTaskList } from "./useTaskList";
 import { UtilityDock } from "./UtilityDock";
@@ -21,13 +21,17 @@ const TASK_EXIT_DURATION = {
 } satisfies Record<RemovalEffect, number>;
 const REDUCED_MOTION_EXIT_DURATION = 100;
 
-const horizons = [
-  { id: "today", title: "Today" },
-  { id: "week", title: "This Week" },
-  { id: "month", title: "This Month" },
-  { id: "year", title: "This Year" },
-  { id: "life", title: "Life" },
-] satisfies Horizon[];
+const HORIZON_TITLES = {
+  today: "Today",
+  week: "This Week",
+  month: "This Month",
+  year: "This Year",
+  life: "Life",
+} satisfies Record<TaskHorizon, string>;
+const horizons: Horizon[] = TASK_HORIZONS.map((id) => ({
+  id,
+  title: HORIZON_TITLES[id],
+}));
 
 function isTheme(value: unknown): value is Theme {
   return value === "light" || value === "dark";
