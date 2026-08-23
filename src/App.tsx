@@ -4,6 +4,7 @@ import { getTimeZone } from "./taskPeriods";
 import { loadSoundEnabled, playSound, saveSoundEnabled, type SoundEffect } from "./sound";
 import { useTaskList } from "./useTaskList";
 import { UtilityDock } from "./UtilityDock";
+import { TwinOrbit } from "./components/TwinOrbit";
 
 type Theme = "light" | "dark";
 type RemovalEffect = Exclude<SoundEffect, "add">;
@@ -271,9 +272,12 @@ export default function App() {
       <main className="app app-state">
         <section className="app-state__content" aria-labelledby="loading-title">
           <h1 className="app-state__title" id="loading-title">Horizons</h1>
-          <p className="app-state__message" role="status">
-            Loading your horizons…
-          </p>
+          <div className="app-loading">
+            <TwinOrbit label="Loading your horizons" />
+            <p className="app-state__message" aria-hidden="true">
+              Loading your horizons…
+            </p>
+          </div>
         </section>
         {utilityControls}
       </main>
