@@ -6,7 +6,7 @@
 .task-entry__input {
   width: 100%;
   min-height: 42px;
-  padding-block: 0 10px;
+  padding-block: 5px;
   padding-inline: 0 42px;
   border: 0;
   border-bottom: 1px solid var(--input-border);
@@ -61,8 +61,12 @@
 }
 
 .task-entry__submit:disabled {
-  cursor: wait;
+  cursor: default;
   opacity: 0.72;
+}
+
+.task-entry[aria-busy="true"] .task-entry__submit {
+  cursor: wait;
 }
 
 .task-entry__plus {

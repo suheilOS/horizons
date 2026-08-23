@@ -12,6 +12,7 @@ type RemovalEffect = Exclude<SoundEffect, "add">;
 type Horizon = {
   id: TaskHorizon;
   title: string;
+  placeholder: string;
 };
 
 const THEME_STORAGE_KEY = "todo-horizons:theme";
@@ -21,16 +22,16 @@ const TASK_EXIT_DURATION = {
 } satisfies Record<RemovalEffect, number>;
 const REDUCED_MOTION_EXIT_DURATION = 100;
 
-const HORIZON_TITLES = {
-  today: "Today",
-  week: "This Week",
-  month: "This Month",
-  year: "This Year",
-  life: "Life",
-} satisfies Record<TaskHorizon, string>;
+const HORIZON_DETAILS = {
+  today: { title: "Today", placeholder: "Add a next step" },
+  week: { title: "This Week", placeholder: "Add a priority" },
+  month: { title: "This Month", placeholder: "Add a milestone" },
+  year: { title: "This Year", placeholder: "Add an ambition" },
+  life: { title: "Life", placeholder: "Add a life goal" },
+} satisfies Record<TaskHorizon, Omit<Horizon, "id">>;
 const horizons: Horizon[] = TASK_HORIZONS.map((id) => ({
   id,
-  title: HORIZON_TITLES[id],
+  ...HORIZON_DETAILS[id],
 }));
 
 function isTheme(value: unknown): value is Theme {
@@ -63,6 +64,7 @@ type HorizonColumnProps = Horizon & {
 function HorizonColumn({
   id,
   title,
+  placeholder,
   tasks,
   removingTasks,
   onAddTask,
@@ -73,6 +75,7 @@ function HorizonColumn({
   const submittingRef = useRef(false);
   const headingId = `${id}-heading`;
   const inputId = `${id}-task-input`;
+  const canSubmit = draft.trim().length > 0;
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -117,7 +120,7 @@ function HorizonColumn({
           id={inputId}
           value={draft}
           onChange={(event) => setDraft(event.currentTarget.value)}
-          placeholder="Add a task"
+          placeholder={placeholder}
           autoComplete="off"
           readOnly={submitting}
         />
@@ -128,13 +131,13 @@ function HorizonColumn({
           className="task-entry__submit"
           type="submit"
           aria-label={`Add task to ${title}`}
-          disabled={submitting}
+          disabled={!canSubmit || submitting}
         >
           {submitting ? (
             <span className="task-entry__spinner" aria-hidden="true" />
-          ) : (
+          ) : canSubmit ? (
             <span className="task-entry__plus" aria-hidden="true">+</span>
-          )}
+          ) : null}
         </button>
       </form>
 
