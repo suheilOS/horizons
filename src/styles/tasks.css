@@ -197,6 +197,7 @@
 }
 
 .task-row__delete {
+  position: relative;
   display: inline-flex;
   min-width: 44px;
   min-height: 24px;

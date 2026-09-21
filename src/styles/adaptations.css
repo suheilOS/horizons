@@ -110,7 +110,13 @@
   }
 
   .task-row__delete {
-    min-height: 40px;
+    min-height: 24px;
+  }
+
+  .task-row__delete::after {
+    position: absolute;
+    inset: -8px;
+    content: "";
   }
 }
 
