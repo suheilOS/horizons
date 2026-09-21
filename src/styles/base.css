@@ -22,6 +22,7 @@
   --input-border: rgba(0, 0, 0, 0.14);
   --checkbox-border: rgba(0, 0, 0, 0.3);
   --fill-strong: #e8e8e8;
+  --overlay-bg: #ffffff;
   --toggle-bg: #e6e6e6;
   --menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
 }
@@ -40,6 +41,7 @@
   --input-border: rgba(255, 255, 255, 0.18);
   --checkbox-border: rgba(255, 255, 255, 0.34);
   --fill-strong: #2a2a2a;
+  --overlay-bg: #242424;
   --toggle-bg: #242424;
   --menu-shadow: 0 8px 24px rgba(0, 0, 0, 0.36);
 }
