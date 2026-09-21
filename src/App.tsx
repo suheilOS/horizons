@@ -9,6 +9,7 @@ import {
   type ReactNode,
   ViewTransition,
 } from "react";
+import { AlertDialog } from "@base-ui/react/alert-dialog";
 import { Toaster, toast } from "sonner";
 import { TASK_HORIZONS, type Task, type TaskHorizon } from "../shared/task";
 import { getTimeZone } from "../shared/task-periods";
@@ -563,6 +564,7 @@ type TaskDetailProps = {
 
 function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailProps) {
   const [draft, setDraft] = useState(task.description);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [closing, setClosing] = useState(false);
   const descriptionRef = useRef<HTMLTextAreaElement>(null);
   const draftRef = useRef(task.description);
@@ -683,23 +685,7 @@ function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailPr
               className="task-detail__delete"
               type="button"
               aria-label={`Delete task: ${task.text}`}
-              onClick={() => {
-                toast("Delete this task?", {
-                  id: `task-delete-confirmation-${task.id}`,
-                  duration: 6_000,
-                  icon: <TrashIcon />,
-                  action: {
-                    label: "Delete",
-                    onClick: () => {
-                      if (saveTimerRef.current !== null) {
-                        window.clearTimeout(saveTimerRef.current);
-                        saveTimerRef.current = null;
-                      }
-                      onDelete(task.id);
-                    },
-                  },
-                });
-              }}
+              onClick={() => setDeleteDialogOpen(true)}
             >
               <TrashIcon />
             </button>
@@ -734,6 +720,44 @@ function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailPr
             />
           </div>
         </div>
+
+        <AlertDialog.Root open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialog.Portal>
+            <AlertDialog.Backdrop className="delete-dialog__backdrop" />
+            <AlertDialog.Popup className="delete-dialog">
+              <div className="delete-dialog__intro">
+                <AlertDialog.Title className="delete-dialog__title">
+                  Delete this task?
+                </AlertDialog.Title>
+                <AlertDialog.Description className="delete-dialog__description">
+                  This permanently removes the task. This action cannot be undone.
+                </AlertDialog.Description>
+              </div>
+              <div className="delete-dialog__actions">
+                <AlertDialog.Close
+                  autoFocus
+                  className="delete-dialog__cancel"
+                  type="button"
+                >
+                  Cancel
+                </AlertDialog.Close>
+                <button
+                  className="delete-dialog__confirm"
+                  type="button"
+                  onClick={() => {
+                    if (saveTimerRef.current !== null) {
+                      window.clearTimeout(saveTimerRef.current);
+                      saveTimerRef.current = null;
+                    }
+                    onDelete(task.id);
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </AlertDialog.Popup>
+          </AlertDialog.Portal>
+        </AlertDialog.Root>
       </section>
     </ViewTransition>
   );

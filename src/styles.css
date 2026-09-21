@@ -3,6 +3,7 @@
 @import "./styles/workspace.css";
 @import "./styles/tasks.css";
 @import "./styles/task-detail.css";
+@import "./styles/delete-dialog.css";
 @import "./styles/toasts.css";
 @import "./styles/view-transitions.css";
 @import "./styles/utility-dock.css";
