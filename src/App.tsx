@@ -438,9 +438,20 @@ export default function App() {
   );
   const toastLayer = (
     <Toaster
+      className="app-toaster"
       theme={theme}
-      position="bottom-center"
-      toastOptions={{ duration: 3_500 }}
+      position="top-center"
+      gap={8}
+      visibleToasts={3}
+      swipeDirections={["top", "bottom", "left", "right"]}
+      offset={16}
+      mobileOffset={16}
+      containerAriaLabel="Notifications"
+      toastOptions={{
+        className: "app-toast",
+        closeButton: false,
+        duration: 3_500,
+      }}
     />
   );
 
@@ -675,11 +686,8 @@ function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailPr
               onClick={() => {
                 toast("Delete this task?", {
                   id: `task-delete-confirmation-${task.id}`,
-                  className: "delete-confirmation-toast",
-                  description: "This action cannot be undone.",
-                  duration: Number.POSITIVE_INFINITY,
+                  duration: 6_000,
                   icon: <TrashIcon />,
-
                   action: {
                     label: "Delete",
                     onClick: () => {
@@ -689,10 +697,6 @@ function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailPr
                       }
                       onDelete(task.id);
                     },
-                  },
-                  cancel: {
-                    label: "Cancel",
-                    onClick: () => undefined,
                   },
                 });
               }}

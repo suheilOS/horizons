@@ -6,6 +6,13 @@
 
 :root {
   color-scheme: light;
+  --font-sans:
+    "Open Runde",
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --radius-control: 12px;
   --radius-surface: 20px;
@@ -49,13 +56,7 @@
 html {
   height: 100%;
   min-height: 100%;
-  font-family:
-    "Open Runde",
-    system-ui,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
+  font-family: var(--font-sans);
   line-height: 1.5;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
