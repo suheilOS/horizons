@@ -17,10 +17,10 @@
 
 .task-detail__header {
   display: flex;
-  width: 100%;
+  width: calc(100% + 24px);
   align-items: center;
   justify-content: space-between;
-  margin-bottom: clamp(24px, 4vw, 40px);
+  margin: 0 -12px clamp(24px, 4vw, 40px);
 }
 
 .task-detail__back,
@@ -46,7 +46,7 @@
 }
 
 .task-detail__delete {
-  color: var(--danger);
+  color: var(--muted);
 }
 
 .task-detail__back svg,
@@ -63,7 +63,8 @@
   }
 
   .task-detail__delete:hover {
-    background: var(--danger-surface);
+    background: var(--fill-strong);
+    color: var(--muted-strong);
   }
 }
 
@@ -132,24 +133,6 @@
 .task-detail__textarea:disabled {
   cursor: wait;
   opacity: 0.72;
-}
-
-[data-sonner-toaster] {
-  font-family: inherit;
-}
-
-[data-sonner-toast].delete-confirmation-toast {
-  border-color: var(--danger-border);
-  background: var(--surface);
-}
-
-[data-sonner-toast].delete-confirmation-toast [data-icon] {
-  color: var(--danger);
-}
-
-[data-sonner-toast].delete-confirmation-toast [data-icon] svg {
-  width: 18px;
-  height: 18px;
 }
 
 @media (max-width: 1099px) {

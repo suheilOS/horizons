@@ -440,7 +440,6 @@ export default function App() {
     <Toaster
       theme={theme}
       position="bottom-center"
-      closeButton
       toastOptions={{ duration: 3_500 }}
     />
   );
@@ -680,10 +679,7 @@ function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailPr
                   description: "This action cannot be undone.",
                   duration: Number.POSITIVE_INFINITY,
                   icon: <TrashIcon />,
-                  actionButtonStyle: {
-                    background: "var(--danger)",
-                    color: "var(--danger-contrast)",
-                  },
+
                   action: {
                     label: "Delete",
                     onClick: () => {
