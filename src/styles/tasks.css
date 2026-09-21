@@ -204,6 +204,10 @@
   outline-offset: 3px;
 }
 
+.task-row__open[data-restored-focus]:focus-visible {
+  outline: 0;
+}
+
 .task-row__open:active {
   scale: 0.99;
 }

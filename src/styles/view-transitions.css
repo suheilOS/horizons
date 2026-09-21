@@ -1,7 +1,6 @@
 :root {
-  --duration-view-exit: 150ms;
-  --duration-view-enter: 210ms;
-  --duration-view-move: 360ms;
+  --duration-view-detail: 280ms;
+  --duration-view-move: 280ms;
 }
 
 ::view-transition {
@@ -9,8 +8,9 @@
 }
 
 ::view-transition-group(.text-morph) {
+  z-index: 1;
   animation-duration: var(--duration-view-move);
-  animation-timing-function: var(--ease-out);
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ::view-transition-old(.text-morph) {
@@ -48,11 +48,11 @@
 }
 
 ::view-transition-new(.task-detail-enter) {
-  animation: var(--duration-view-enter) var(--ease-out) both task-detail-enter;
+  animation: var(--duration-view-detail) var(--ease-out) both task-detail-enter;
 }
 
 ::view-transition-old(.task-detail-exit) {
-  animation: var(--duration-view-exit) ease-in both task-detail-exit;
+  animation: var(--duration-view-detail) var(--ease-out) both task-detail-exit;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -353,7 +353,16 @@ export default function App() {
     }
 
     const taskId = returnFocusTaskId.current;
-    taskOpenButtons.current.get(taskId)?.focus();
+    const openButton = taskOpenButtons.current.get(taskId);
+    if (openButton !== undefined) {
+      openButton.dataset.restoredFocus = "";
+      openButton.focus({ preventScroll: true });
+      openButton.addEventListener(
+        "blur",
+        () => delete openButton.dataset.restoredFocus,
+        { once: true },
+      );
+    }
     returnFocusTaskId.current = null;
   }, [selectedTaskId]);
 
@@ -525,14 +534,12 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
   const [draft, setDraft] = useState(task.description);
   const [serverDescription, setServerDescription] = useState(task.description);
   const [saving, setSaving] = useState(false);
-  const closeButtonRef = useRef<HTMLButtonElement>(null);
-  const handleCloseRef = useRef<() => void>(() => undefined);
+  const backButtonRef = useRef<HTMLButtonElement>(null);
   const titleId = `task-detail-title-${task.id}`;
   const descriptionId = `task-detail-description-${task.id}`;
-  const descriptionHintId = `task-detail-description-hint-${task.id}`;
 
   useEffect(() => {
-    closeButtonRef.current?.focus();
+    backButtonRef.current?.focus();
   }, []);
 
   useEffect(() => {
@@ -544,12 +551,9 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
     setServerDescription(task.description);
   }, [serverDescription, task.description]);
 
-  async function saveDescription(closeAfterSave = false): Promise<boolean> {
+  async function saveDescription(): Promise<boolean> {
     const description = draft.trim();
     if (description === serverDescription) {
-      if (closeAfterSave) {
-        onClose();
-      }
       return true;
     }
 
@@ -564,9 +568,6 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
     if (saved) {
       setDraft(description);
       setServerDescription(description);
-      if (closeAfterSave) {
-        onClose();
-      }
     }
 
     return saved;
@@ -577,25 +578,17 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
     void saveDescription();
   }
 
-  function handleClose() {
-    if (!saving) {
-      void saveDescription(true);
-    }
-  }
-
-  handleCloseRef.current = handleClose;
-
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
+      if (event.key === "Escape" && !saving) {
         event.preventDefault();
-        handleCloseRef.current();
+        onClose();
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, []);
+  }, [onClose, saving]);
 
   return (
     <ViewTransition
@@ -604,8 +597,17 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
       default="none"
     >
       <section className="task-detail" aria-labelledby={titleId}>
-        <header className="task-detail__header">
-          <p className="task-detail__eyebrow">Task details</p>
+        <div className="task-detail__content">
+          <button
+            ref={backButtonRef}
+            className="task-detail__back"
+            type="button"
+            onClick={onClose}
+            disabled={saving}
+          >
+            Back
+          </button>
+
           <ViewTransition
             name={`task-title-${task.id}`}
             share="text-morph"
@@ -615,47 +617,33 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
               {task.text}
             </h2>
           </ViewTransition>
-          <button
-            ref={closeButtonRef}
-            className="task-detail__close"
-            type="button"
-            onClick={handleClose}
-            disabled={saving}
-            aria-label="Save and close task details"
-          >
-            {saving ? "Saving…" : "Done"}
-          </button>
-        </header>
 
-        <form
-          className="task-detail__form"
-          aria-busy={saving}
-          onSubmit={handleSubmit}
-        >
-          <label className="task-detail__label" htmlFor={descriptionId}>
-            Description
-          </label>
-          <textarea
-            className="task-detail__textarea"
-            id={descriptionId}
-            value={draft}
-            maxLength={4_000}
-            aria-describedby={descriptionHintId}
-            placeholder="What is this for, and why does it matter?"
-            onChange={(event) => setDraft(event.currentTarget.value)}
-            disabled={saving}
-          />
-          <p className="task-detail__hint" id={descriptionHintId}>
-            Add context to help your future self take the next step.
-          </p>
-          <button
-            className="task-detail__save"
-            type="submit"
-            disabled={saving || draft.trim() === serverDescription}
+          <form
+            className="task-detail__form"
+            aria-busy={saving}
+            onSubmit={handleSubmit}
           >
-            {saving ? "Saving…" : "Save description"}
-          </button>
-        </form>
+            <label className="visually-hidden" htmlFor={descriptionId}>
+              Description
+            </label>
+            <textarea
+              className="task-detail__textarea"
+              id={descriptionId}
+              value={draft}
+              maxLength={4_000}
+              placeholder="Add a description…"
+              onChange={(event) => setDraft(event.currentTarget.value)}
+              disabled={saving}
+            />
+            <button
+              className="task-detail__save"
+              type="submit"
+              disabled={saving || draft.trim() === serverDescription}
+            >
+              {saving ? "Saving…" : "Save"}
+            </button>
+          </form>
+        </div>
       </section>
     </ViewTransition>
   );

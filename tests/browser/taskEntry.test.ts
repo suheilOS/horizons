@@ -182,12 +182,9 @@ describe("task entry progress", () => {
     expect(textarea.value).toBe("My local context");
 
     await act(async () => {
-      getElement(".task-detail__close", HTMLButtonElement).click();
-      await Promise.resolve();
+      getElement(".task-detail__back", HTMLButtonElement).click();
     });
-    expect(taskList.updateTaskDescription).toHaveBeenCalledWith(
-      "task-2",
-      "My local context",
-    );
+    expect(taskList.updateTaskDescription).not.toHaveBeenCalled();
+    expect(document.querySelector(".task-detail")).toBeNull();
   });
 });
