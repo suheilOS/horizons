@@ -136,9 +136,7 @@ describe("task entry progress", () => {
     enterDescription(textarea, "Explain the outcome and next step.");
 
     await act(async () => {
-      getElement(".task-detail__form", HTMLFormElement).dispatchEvent(
-        new Event("submit", { bubbles: true, cancelable: true }),
-      );
+      getElement(".task-detail__back", HTMLButtonElement).click();
       await Promise.resolve();
     });
 
@@ -184,7 +182,10 @@ describe("task entry progress", () => {
     await act(async () => {
       getElement(".task-detail__back", HTMLButtonElement).click();
     });
-    expect(taskList.updateTaskDescription).not.toHaveBeenCalled();
+    expect(taskList.updateTaskDescription).toHaveBeenCalledWith(
+      "task-2",
+      "My local context",
+    );
     expect(document.querySelector(".task-detail")).toBeNull();
   });
 });

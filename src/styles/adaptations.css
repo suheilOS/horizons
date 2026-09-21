@@ -23,12 +23,6 @@
 }
 
 
-@media (hover: none) {
-  .task-row__delete {
-    opacity: 0.9;
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .task-row {
     transition: opacity 100ms ease;
@@ -42,23 +36,15 @@
   .task-entry__submit,
   .task-row__checkbox,
   .task-row__open,
-  .task-row__delete,
   .utility-toggle,
   .app-state__action {
     scale: 1;
   }
 
-  .task-row__delete {
-    transform: none;
-    transition:
-      color 100ms ease,
-      opacity 100ms ease;
-  }
 
   .task-entry__submit:active,
   .task-row__checkbox:active,
   .task-row__open:active,
-  .task-row__delete:active,
   .utility-toggle:active {
     scale: 1;
   }
@@ -101,7 +87,7 @@
   }
 
   .task-row {
-    grid-template-columns: 32px minmax(0, 1fr) max-content;
+    grid-template-columns: 32px minmax(0, 1fr);
     column-gap: 12px;
   }
 
@@ -111,14 +97,5 @@
     margin-top: 0;
   }
 
-  .task-row__delete {
-    min-height: 24px;
-  }
-
-  .task-row__delete::after {
-    position: absolute;
-    inset: -8px;
-    content: "";
-  }
 }
 

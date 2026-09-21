@@ -23,6 +23,19 @@
   object-position: left top;
 }
 
+::view-transition-group(utility-dock) {
+  z-index: 100;
+  animation: none;
+}
+
+::view-transition-old(utility-dock) {
+  display: none;
+}
+
+::view-transition-new(utility-dock) {
+  animation: none;
+}
+
 @keyframes task-detail-enter {
   from {
     opacity: 0;

@@ -3,6 +3,7 @@
   inset-inline-end: max(16px, calc(env(safe-area-inset-right) + 8px));
   inset-block-end: max(16px, calc(env(safe-area-inset-bottom) + 8px));
   z-index: 10;
+  view-transition-name: utility-dock;
   display: flex;
   align-items: flex-end;
   flex-direction: column;

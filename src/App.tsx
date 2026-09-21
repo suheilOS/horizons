@@ -189,14 +189,7 @@ function HorizonColumn({
                   <span className="task-row__text">{task.text}</span>
                 </ViewTransition>
               </button>
-              <button
-                className="task-row__delete"
-                type="button"
-                aria-label={`Delete task: ${task.text}`}
-                onClick={() => onRequestRemoval(task.id, "delete")}
-              >
-                Delete
-              </button>
+
             </li>
           ))}
         </ul>
@@ -320,6 +313,12 @@ export default function App() {
     startTransition(() => setSelectedTaskId(null));
   }
 
+  function deleteSelectedTask(taskId: string) {
+    returnFocusTaskId.current = null;
+    requestTaskRemoval(taskId, "delete");
+    closeTask();
+  }
+
   function registerTaskOpenButton(
     taskId: string,
     element: HTMLButtonElement | null,
@@ -337,10 +336,11 @@ export default function App() {
   ): Promise<boolean> {
     const saved = await updateTaskDescriptionOnServer(taskId, description);
     if (saved) {
-      toast.success("Description saved");
+      toast.dismiss("description-save-error");
     } else {
       toast.error("Could not save description", {
-        description: "Try again.",
+        id: "description-save-error",
+        description: "Your changes are still in the editor. Try again.",
         duration: Number.POSITIVE_INFINITY,
       });
     }
@@ -505,6 +505,7 @@ export default function App() {
               key={selectedTask.id}
               task={selectedTask}
               onClose={closeTask}
+              onDelete={deleteSelectedTask}
               onSaveDescription={saveTaskDescription}
             />
           )}
@@ -527,68 +528,110 @@ export default function App() {
 type TaskDetailProps = {
   task: Task;
   onClose: () => void;
+  onDelete: (taskId: string) => void;
   onSaveDescription: (taskId: string, description: string) => Promise<boolean>;
 };
 
-function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
+function TaskDetail({ task, onClose, onDelete, onSaveDescription }: TaskDetailProps) {
   const [draft, setDraft] = useState(task.description);
-  const [serverDescription, setServerDescription] = useState(task.description);
-  const [saving, setSaving] = useState(false);
-  const backButtonRef = useRef<HTMLButtonElement>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [closing, setClosing] = useState(false);
+  const descriptionRef = useRef<HTMLTextAreaElement>(null);
+  const draftRef = useRef(task.description);
+  const savedDescriptionRef = useRef(task.description);
+  const saveInFlightRef = useRef<Promise<boolean> | null>(null);
+  const saveTimerRef = useRef<number | null>(null);
+  const flushDescriptionRef = useRef<() => Promise<boolean>>(async () => true);
+  const closingRef = useRef(false);
   const titleId = `task-detail-title-${task.id}`;
   const descriptionId = `task-detail-description-${task.id}`;
 
   useEffect(() => {
-    backButtonRef.current?.focus();
+    const editor = descriptionRef.current;
+    if (editor === null) return;
+
+    editor.focus({ preventScroll: true });
+    editor.setSelectionRange(editor.value.length, editor.value.length);
   }, []);
 
   useEffect(() => {
-    setDraft((currentDraft) => (
-      currentDraft.trim() === serverDescription
-        ? task.description
-        : currentDraft
-    ));
-    setServerDescription(task.description);
-  }, [serverDescription, task.description]);
+    if (task.description === savedDescriptionRef.current) return;
 
-  async function saveDescription(): Promise<boolean> {
-    const description = draft.trim();
-    if (description === serverDescription) {
-      return true;
+    const draftWasClean = draftRef.current.trim() === savedDescriptionRef.current;
+    savedDescriptionRef.current = task.description;
+    if (draftWasClean) {
+      draftRef.current = task.description;
+      setDraft(task.description);
     }
+  }, [task.description]);
 
-    setSaving(true);
-    let saved = false;
-    try {
-      saved = await onSaveDescription(task.id, description);
-    } finally {
-      setSaving(false);
+  async function flushDescription(): Promise<boolean> {
+    while (true) {
+      if (saveInFlightRef.current !== null) {
+        const saved = await saveInFlightRef.current;
+        if (!saved) return false;
+        continue;
+      }
+
+      const description = draftRef.current.trim();
+      if (description === savedDescriptionRef.current) return true;
+
+      const request = onSaveDescription(task.id, description);
+      saveInFlightRef.current = request;
+      const saved = await request;
+      if (saveInFlightRef.current === request) {
+        saveInFlightRef.current = null;
+      }
+      if (!saved) return false;
+
+      savedDescriptionRef.current = description;
     }
-
-    if (saved) {
-      setDraft(description);
-      setServerDescription(description);
-    }
-
-    return saved;
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    void saveDescription();
+  flushDescriptionRef.current = flushDescription;
+
+  useEffect(() => {
+    if (draft.trim() === savedDescriptionRef.current) return;
+
+    saveTimerRef.current = window.setTimeout(() => {
+      saveTimerRef.current = null;
+      void flushDescriptionRef.current();
+    }, 800);
+
+    return () => {
+      if (saveTimerRef.current !== null) {
+        window.clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+    };
+  }, [draft]);
+
+  async function closeAfterSave() {
+    if (closingRef.current) return;
+
+    closingRef.current = true;
+    setClosing(true);
+    const saved = await flushDescription();
+    if (saved) {
+      onClose();
+      return;
+    }
+
+    closingRef.current = false;
+    setClosing(false);
   }
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape" && !saving) {
+      if (event.key === "Escape" && !closingRef.current) {
         event.preventDefault();
-        onClose();
+        void closeAfterSave();
       }
     }
 
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onClose, saving]);
+  });
 
   return (
     <ViewTransition
@@ -599,13 +642,12 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
       <section className="task-detail" aria-labelledby={titleId}>
         <div className="task-detail__content">
           <button
-            ref={backButtonRef}
             className="task-detail__back"
             type="button"
-            onClick={onClose}
-            disabled={saving}
+            onClick={() => void closeAfterSave()}
+            disabled={closing}
           >
-            Back
+            {closing ? "Saving…" : "Back"}
           </button>
 
           <ViewTransition
@@ -618,31 +660,59 @@ function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
             </h2>
           </ViewTransition>
 
-          <form
-            className="task-detail__form"
-            aria-busy={saving}
-            onSubmit={handleSubmit}
-          >
+          <div className="task-detail__form">
             <label className="visually-hidden" htmlFor={descriptionId}>
               Description
             </label>
             <textarea
+              ref={descriptionRef}
               className="task-detail__textarea"
               id={descriptionId}
               value={draft}
               maxLength={4_000}
               placeholder="Add a description…"
-              onChange={(event) => setDraft(event.currentTarget.value)}
-              disabled={saving}
+              onChange={(event) => {
+                const description = event.currentTarget.value;
+                draftRef.current = description;
+                setDraft(description);
+              }}
             />
-            <button
-              className="task-detail__save"
-              type="submit"
-              disabled={saving || draft.trim() === serverDescription}
-            >
-              {saving ? "Saving…" : "Save"}
-            </button>
-          </form>
+          </div>
+
+          <div className="task-detail__delete-area" aria-live="polite">
+            {confirmingDelete ? (
+              <>
+                <button
+                  className="task-detail__delete task-detail__delete--confirm"
+                  type="button"
+                  onClick={() => {
+                    if (saveTimerRef.current !== null) {
+                      window.clearTimeout(saveTimerRef.current);
+                      saveTimerRef.current = null;
+                    }
+                    onDelete(task.id);
+                  }}
+                >
+                  Delete task?
+                </button>
+                <button
+                  className="task-detail__cancel-delete"
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                >
+                  Cancel
+                </button>
+              </>
+            ) : (
+              <button
+                className="task-detail__delete"
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+              >
+                Delete task
+              </button>
+            )}
+          </div>
         </div>
       </section>
     </ViewTransition>
