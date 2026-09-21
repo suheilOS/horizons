@@ -15,9 +15,9 @@
   margin-inline: auto;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
+  padding: 8px;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-surface);
   background: var(--overlay-bg);
   box-shadow: var(--menu-shadow);
   color: var(--text);
@@ -49,6 +49,7 @@
 [data-sonner-toast][data-styled="true"].app-toast [data-content] {
   min-width: 0;
   gap: 1px;
+  translate: 0 1px;
 }
 
 [data-sonner-toast][data-styled="true"].app-toast [data-title] {
@@ -73,7 +74,7 @@
   margin-inline-start: auto;
   padding-inline: 12px;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   background: var(--text);
   color: var(--page-bg);
   font-family: var(--font-sans);
