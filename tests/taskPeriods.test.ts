@@ -17,6 +17,7 @@ describe("task contracts", () => {
     expect(isTask({
       id: "task-1",
       text: "Ship shared contracts",
+      description: "Keep the shared contracts in sync.",
       horizon: "week",
       periodKey: "2026-W34",
       timeZone: "Europe/Istanbul",
@@ -24,6 +25,7 @@ describe("task contracts", () => {
     expect(isTask({
       id: "task-2",
       text: "Reject an unknown horizon",
+      description: "",
       horizon: "later",
       periodKey: "later",
       timeZone: "Europe/Istanbul",

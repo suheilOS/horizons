@@ -6,6 +6,10 @@ export type NewTaskInput = {
   timeZone: string;
 };
 
+export type UpdateTaskInput = {
+  description: string;
+};
+
 type TasksResponse = { tasks: Task[] };
 
 type TaskResponse = { task: Task };
@@ -31,6 +35,17 @@ export async function fetchTasks(signal?: AbortSignal): Promise<Task[]> {
 export async function createTask(input: NewTaskInput): Promise<Task> {
   const response = await request("/api/tasks", {
     method: "POST",
+    body: JSON.stringify(input),
+  });
+  return readTaskResponse(response).task;
+}
+
+export async function updateTaskDescription(
+  id: string,
+  input: UpdateTaskInput,
+): Promise<Task> {
+  const response = await request(`/api/tasks/${encodeURIComponent(id)}`, {
+    method: "PATCH",
     body: JSON.stringify(input),
   });
   return readTaskResponse(response).task;

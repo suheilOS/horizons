@@ -5,6 +5,7 @@ import {
   deleteTask,
   fetchTasks,
   TaskApiError,
+  updateTaskDescription as saveTaskDescription,
   type NewTaskInput,
 } from "./taskApi";
 
@@ -23,6 +24,7 @@ export type TaskList = {
   retry: () => void;
   refresh: () => void;
   addTask: (input: NewTaskInput) => Promise<boolean>;
+  updateTaskDescription: (id: string, description: string) => Promise<boolean>;
   removeTask: (id: string) => Promise<boolean>;
 };
 
@@ -103,6 +105,25 @@ export function useTaskList(): TaskList {
     return succeeded;
   }, [runMutation]);
 
+  const updateDescription = useCallback(async (
+    id: string,
+    description: string,
+  ): Promise<boolean> => {
+    let updatedTask: Task | null = null;
+    const succeeded = await runMutation(async () => {
+      updatedTask = await saveTaskDescription(id, { description });
+    });
+
+    if (succeeded && updatedTask !== null) {
+      const nextTask = updatedTask;
+      setTasks((current) => current.map((task) => (
+        task.id === id ? nextTask : task
+      )));
+    }
+
+    return succeeded;
+  }, [runMutation]);
+
   const removeTask = useCallback(async (id: string): Promise<boolean> => {
     const succeeded = await runMutation(() => deleteTask(id));
 
@@ -136,6 +157,7 @@ export function useTaskList(): TaskList {
     retry,
     refresh,
     addTask,
+    updateTaskDescription: updateDescription,
     removeTask,
   };
 }

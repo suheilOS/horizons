@@ -16,6 +16,7 @@ beforeAll(async () => {
       id TEXT PRIMARY KEY NOT NULL,
       user_id TEXT NOT NULL,
       text TEXT NOT NULL,
+      description TEXT NOT NULL DEFAULT '',
       horizon TEXT NOT NULL,
       period_key TEXT NOT NULL,
       time_zone TEXT NOT NULL,
@@ -61,7 +62,41 @@ describe("Horizons task API", () => {
     const ownerTasks = await request(ownerId, "/api/tasks");
     expect(ownerTasks.status).toBe(200);
     expect(await ownerTasks.json()).toMatchObject({
-      tasks: [{ text: "Private task", horizon: "today", timeZone: "UTC" }],
+      tasks: [{
+        text: "Private task",
+        description: "",
+        horizon: "today",
+        timeZone: "UTC",
+      }],
+    });
+  });
+
+  it("updates a task description only for its owner", async () => {
+    const ownerId = `description-owner-${crypto.randomUUID()}`;
+    const otherUserId = `description-other-${crypto.randomUUID()}`;
+    const created = await request(ownerId, "/api/tasks", {
+      method: "POST",
+      body: JSON.stringify({
+        text: "Write the brief",
+        horizon: "week",
+        timeZone: "UTC",
+      }),
+    });
+    const createdId = readTaskId(await created.json());
+
+    const rejected = await request(otherUserId, `/api/tasks/${createdId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ description: "Not yours" }),
+    });
+    expect(rejected.status).toBe(404);
+
+    const updated = await request(ownerId, `/api/tasks/${createdId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ description: "Explain why this matters." }),
+    });
+    expect(updated.status).toBe(200);
+    expect(await updated.json()).toMatchObject({
+      task: { id: createdId, description: "Explain why this matters." },
     });
   });
 
@@ -147,6 +182,35 @@ describe("Horizons task API", () => {
       }),
     });
     expect(invalid.status).toBe(400);
+
+    const created = await request("description-validation-user", "/api/tasks", {
+      method: "POST",
+      body: JSON.stringify({
+        text: "Task",
+        horizon: "today",
+        timeZone: "UTC",
+      }),
+    });
+    const createdId = readTaskId(await created.json());
+    const maxUnicodeDescription = await request(
+      "description-validation-user",
+      `/api/tasks/${createdId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ description: "€".repeat(4_000) }),
+      },
+    );
+    expect(maxUnicodeDescription.status).toBe(200);
+
+    const invalidDescription = await request(
+      "description-validation-user",
+      `/api/tasks/${createdId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ description: "x".repeat(4_001) }),
+      },
+    );
+    expect(invalidDescription.status).toBe(400);
   });
 });
 

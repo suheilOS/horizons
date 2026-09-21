@@ -1,10 +1,11 @@
 import { act, createElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { Task } from "../../shared/task";
 import App from "../../src/App";
 
 const taskList = vi.hoisted(() => ({
-  tasks: [],
+  tasks: [] as Task[],
   loading: false,
   busy: false,
   error: null,
@@ -12,6 +13,7 @@ const taskList = vi.hoisted(() => ({
   retry: vi.fn(),
   refresh: vi.fn(),
   addTask: vi.fn(),
+  updateTaskDescription: vi.fn(),
   removeTask: vi.fn(),
 }));
 
@@ -42,8 +44,19 @@ function enterText(input: HTMLInputElement, value: string) {
   input.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
+function enterDescription(textarea: HTMLTextAreaElement, value: string) {
+  const descriptor = Object.getOwnPropertyDescriptor(
+    HTMLTextAreaElement.prototype,
+    "value",
+  );
+  if (descriptor?.set === undefined) throw new Error("Textarea setter is unavailable.");
+  descriptor.set.call(textarea, value);
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
 beforeEach(async () => {
   vi.clearAllMocks();
+  taskList.tasks = [];
   const container = document.createElement("div");
   document.body.append(container);
   root = createRoot(container);
@@ -95,5 +108,86 @@ describe("task entry progress", () => {
     expect(input.value).toBe("Review the week");
     expect(form.querySelector(".task-entry__spinner")).toBeNull();
     expect(form.querySelector(".task-entry__plus")).not.toBeNull();
+  });
+
+  it("opens task details and saves a description", async () => {
+    const task: Task = {
+      id: "task-1",
+      text: "Prepare the project brief",
+      description: "",
+      horizon: "today",
+      periodKey: "2026-01-01",
+      timeZone: "UTC",
+    };
+    taskList.tasks = [task];
+    taskList.updateTaskDescription.mockResolvedValue(true);
+
+    await act(async () => {
+      root?.render(createElement(App));
+    });
+
+    const openButton = getElement(".task-row__open", HTMLButtonElement);
+    await act(async () => {
+      openButton.click();
+    });
+
+    expect(document.querySelector(".task-detail")).not.toBeNull();
+    const textarea = getElement(".task-detail__textarea", HTMLTextAreaElement);
+    enterDescription(textarea, "Explain the outcome and next step.");
+
+    await act(async () => {
+      getElement(".task-detail__form", HTMLFormElement).dispatchEvent(
+        new Event("submit", { bubbles: true, cancelable: true }),
+      );
+      await Promise.resolve();
+    });
+
+    expect(taskList.updateTaskDescription).toHaveBeenCalledWith(
+      "task-1",
+      "Explain the outcome and next step.",
+    );
+  });
+
+  it("does not overwrite a description edited during a background refresh", async () => {
+    const task: Task = {
+      id: "task-2",
+      text: "Review the launch plan",
+      description: "Original context",
+      horizon: "week",
+      periodKey: "2026-01-01",
+      timeZone: "UTC",
+    };
+    taskList.tasks = [task];
+    taskList.updateTaskDescription.mockResolvedValue(true);
+
+    await act(async () => {
+      root?.render(createElement(App));
+    });
+    await act(async () => {
+      getElement(".task-row__open", HTMLButtonElement).click();
+    });
+
+    const textarea = getElement(".task-detail__textarea", HTMLTextAreaElement);
+    taskList.tasks = [{ ...task, description: "Updated elsewhere" }];
+    await act(async () => {
+      root?.render(createElement(App));
+    });
+    expect(textarea.value).toBe("Updated elsewhere");
+
+    enterDescription(textarea, "My local context");
+    taskList.tasks = [{ ...task, description: "A newer server update" }];
+    await act(async () => {
+      root?.render(createElement(App));
+    });
+    expect(textarea.value).toBe("My local context");
+
+    await act(async () => {
+      getElement(".task-detail__close", HTMLButtonElement).click();
+      await Promise.resolve();
+    });
+    expect(taskList.updateTaskDescription).toHaveBeenCalledWith(
+      "task-2",
+      "My local context",
+    );
   });
 });

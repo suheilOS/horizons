@@ -23,7 +23,8 @@ To mirror this simplicity in the codebase, Horizons keeps the product surface sm
 - **Audio Feedback:** Playful, built-in sound effects for adding, completing, and deleting tasks.
 - **Dark/Light Mode:** Seamless persistent themes that adapt to system preferences.
 - **Fully Accessible:** Crafted with semantic HTML, rich ARIA attributes, keyboard support, and `prefers-reduced-motion` compliance.
-- **Account-backed Tasks:** Tasks sync through the shared Overhawl account; sound and theme preferences remain local to the browser.
+- **Task Context:** Open any task to add a description explaining what it is and why it matters.
+- **Account-backed Tasks:** Tasks and descriptions sync through the shared Overhawl account; sound and theme preferences remain local to the browser.
 
 ## Tech Stack
 
@@ -33,6 +34,7 @@ To mirror this simplicity in the codebase, Horizons keeps the product surface sm
 - **Bundler:** Vite
 - **Styling:** CSS3 (Vanilla)
 - **Audio:** Web Audio API (In-memory synthesized sound effects)
+- **Notifications:** Sonner
 - **Package Manager:** Bun (lockfile included)
 
 ## Getting Started
@@ -148,6 +150,7 @@ Only the theme and sound preferences use browser storage. Tasks are authoritativ
 - [`shared/task-periods.ts`](shared/task-periods.ts): Timezone-aware period calculations and expiry checks.
 - [`src/taskApi.ts`](src/taskApi.ts): Authenticated client for the task API.
 - [`src/useTaskList.ts`](src/useTaskList.ts): Server-backed task loading and mutations.
+- [`src/styles/task-detail.css`](src/styles/task-detail.css): Full-screen task detail view styling.
 - [`worker/`](worker/): Hono Worker, auth middleware, CSRF protection, and task routes.
 - [`migrations/`](migrations/): D1 schema migrations.
 - [`src/sound.ts`](src/sound.ts): Web Audio API synthesizer for interactive UI sounds.

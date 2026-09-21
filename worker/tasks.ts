@@ -10,9 +10,10 @@ import {
 import { requireAuth, type AppEnv } from "./auth";
 import { requireSameOrigin } from "./csrf";
 
-const MAX_CREATE_BODY_BYTES = 8 * 1024;
+const MAX_BODY_BYTES = 32 * 1024;
+const MAX_DESCRIPTION_LENGTH = 4_000;
 const TASK_COLUMNS = `
-  id, user_id, text, horizon, period_key, time_zone, created_at, updated_at
+  id, user_id, text, description, horizon, period_key, time_zone, created_at, updated_at
 `;
 
 export const taskRoutes = new Hono<AppEnv>();
@@ -59,12 +60,13 @@ taskRoutes.post("/tasks", async (context) => {
 
   await context.env.HORIZONS_DB.prepare(`
     INSERT INTO tasks (
-      id, user_id, text, horizon, period_key, time_zone, created_at, updated_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      id, user_id, text, description, horizon, period_key, time_zone, created_at, updated_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).bind(
     id,
     context.get("userId"),
     input.text,
+    "",
     input.horizon,
     periodKey,
     input.timeZone,
@@ -76,6 +78,37 @@ taskRoutes.post("/tasks", async (context) => {
   return task === null
     ? apiError(context, "internal_error", "The task could not be created.", 500)
     : context.json({ task: toTask(task) }, 201);
+});
+
+taskRoutes.patch("/tasks/:id", async (context) => {
+  const description = await readDescriptionInput(context);
+  if (description === null) {
+    return apiError(context, "bad_request", "Enter a valid description.", 400);
+  }
+
+  const nowIso = new Date().toISOString();
+  const result = await context.env.HORIZONS_DB.prepare(
+    "UPDATE tasks SET description = ?, updated_at = ? WHERE id = ? AND user_id = ?",
+  ).bind(
+    description,
+    nowIso,
+    context.req.param("id"),
+    context.get("userId"),
+  ).run();
+
+  if (result.meta.changes !== 1) {
+    return apiError(context, "not_found", "The task could not be found.", 404);
+  }
+
+  const task = await findTask(
+    context.env.HORIZONS_DB,
+    context.get("userId"),
+    context.req.param("id"),
+  );
+
+  return task === null
+    ? apiError(context, "internal_error", "The task could not be updated.", 500)
+    : context.json({ task: toTask(task) });
 });
 
 taskRoutes.delete("/tasks/:id", async (context) => {
@@ -110,9 +143,19 @@ async function readCreateInput(context: Context<AppEnv>): Promise<CreateTaskInpu
   return { text, horizon, timeZone };
 }
 
+async function readDescriptionInput(context: Context<AppEnv>): Promise<string | null> {
+  const body = await readJson(context);
+  if (!isRecord(body) || typeof body.description !== "string") {
+    return null;
+  }
+
+  const description = body.description.trim();
+  return description.length <= MAX_DESCRIPTION_LENGTH ? description : null;
+}
+
 async function readJson(context: Context<AppEnv>): Promise<unknown> {
   const contentLength = context.req.header("Content-Length");
-  if (contentLength !== undefined && Number(contentLength) > MAX_CREATE_BODY_BYTES) {
+  if (contentLength !== undefined && Number(contentLength) > MAX_BODY_BYTES) {
     return null;
   }
 
@@ -133,7 +176,7 @@ async function readJson(context: Context<AppEnv>): Promise<unknown> {
       }
 
       totalBytes += value.byteLength;
-      if (totalBytes > MAX_CREATE_BODY_BYTES) {
+      if (totalBytes > MAX_BODY_BYTES) {
         await reader.cancel();
         return null;
       }
@@ -178,6 +221,7 @@ function toTask(row: TaskRow): Task {
   return {
     id: row.id,
     text: row.text,
+    description: row.description,
     horizon: row.horizon,
     periodKey: row.period_key,
     timeZone: row.time_zone,
@@ -207,6 +251,7 @@ type TaskRow = {
   id: string;
   user_id: string;
   text: string;
+  description: string;
   horizon: TaskHorizon;
   period_key: string;
   time_zone: string;

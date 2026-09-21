@@ -11,6 +11,7 @@ export type TaskHorizon = (typeof TASK_HORIZONS)[number];
 export type Task = {
   id: string;
   text: string;
+  description: string;
   horizon: TaskHorizon;
   periodKey: string;
   timeZone: string;
@@ -28,6 +29,7 @@ export function isTask(value: unknown): value is Task {
   return (
     typeof value.id === "string" &&
     typeof value.text === "string" &&
+    typeof value.description === "string" &&
     isTaskHorizon(value.horizon) &&
     typeof value.periodKey === "string" &&
     isValidTimeZone(value.timeZone)

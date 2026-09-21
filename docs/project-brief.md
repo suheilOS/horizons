@@ -122,6 +122,7 @@ type TaskHorizon = "today" | "week" | "month" | "year" | "life";
 type Task = {
   id: string;
   text: string;
+  description: string;
   horizon: TaskHorizon;
   periodKey: string;
   timeZone: string;
@@ -136,7 +137,7 @@ The exact schema may change slightly during implementation, but additional field
 
 ## Persistence
 
-Tasks are stored in a Horizons-owned Cloudflare D1 database and scoped to the authenticated Overhawl user. The client treats the API as authoritative and does not persist task data in browser storage.
+Tasks and their descriptions are stored in a Horizons-owned Cloudflare D1 database and scoped to the authenticated Overhawl user. The client treats the API as authoritative and does not persist task data in browser storage.
 
 The shared Overhawl Auth Worker provides the session through a Service Binding. Horizons must not access the Auth database directly.
 
@@ -285,7 +286,6 @@ The initial project must not include:
 - tags
 - projects
 - subtasks
-- notes
 - recurring tasks
 - task history
 - analytics

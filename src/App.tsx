@@ -1,4 +1,15 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import {
+  Activity,
+  startTransition,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+  type ReactNode,
+  ViewTransition,
+} from "react";
+import { Toaster, toast } from "sonner";
 import { TASK_HORIZONS, type Task, type TaskHorizon } from "../shared/task";
 import { getTimeZone } from "../shared/task-periods";
 import { loadSoundEnabled, playSound, saveSoundEnabled, type SoundEffect } from "./sound";
@@ -58,7 +69,12 @@ type HorizonColumnProps = Horizon & {
   tasks: Task[];
   removingTasks: Readonly<Record<string, RemovalEffect>>;
   onAddTask: (horizon: TaskHorizon, text: string) => Promise<boolean>;
+  onOpenTask: (taskId: string) => void;
   onRequestRemoval: (taskId: string, effect: RemovalEffect) => void;
+  registerTaskOpenButton: (
+    taskId: string,
+    element: HTMLButtonElement | null,
+  ) => void;
 };
 
 function HorizonColumn({
@@ -68,7 +84,9 @@ function HorizonColumn({
   tasks,
   removingTasks,
   onAddTask,
+  onOpenTask,
   onRequestRemoval,
+  registerTaskOpenButton,
 }: HorizonColumnProps) {
   const [draft, setDraft] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -156,7 +174,21 @@ function HorizonColumn({
                 aria-label={`Complete task: ${task.text}`}
                 onChange={() => onRequestRemoval(task.id, "complete")}
               />
-              <span className="task-row__text">{task.text}</span>
+              <button
+                className="task-row__open"
+                type="button"
+                ref={(element) => registerTaskOpenButton(task.id, element)}
+                aria-label={`Open task: ${task.text}`}
+                onClick={() => onOpenTask(task.id)}
+              >
+                <ViewTransition
+                  name={`task-title-${task.id}`}
+                  share="text-morph"
+                  default="none"
+                >
+                  <span className="task-row__text">{task.text}</span>
+                </ViewTransition>
+              </button>
               <button
                 className="task-row__delete"
                 type="button"
@@ -183,6 +215,7 @@ export default function App() {
     retry,
     refresh,
     addTask: addTaskToServer,
+    updateTaskDescription: updateTaskDescriptionOnServer,
     removeTask: removeTaskFromServer,
   } = useTaskList();
   const [theme, setTheme] = useState<Theme>(getInitialTheme);
@@ -190,7 +223,28 @@ export default function App() {
   const [removingTasks, setRemovingTasks] = useState<
     Readonly<Record<string, RemovalEffect>>
   >({});
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const removalTimers = useRef(new Map<string, number>());
+  const taskOpenButtons = useRef(new Map<string, HTMLButtonElement>());
+  const returnFocusTaskId = useRef<string | null>(null);
+  const selectedTask = selectedTaskId === null
+    ? null
+    : tasks.find((task) => task.id === selectedTaskId) ?? null;
+  const tasksByHorizon = useMemo(() => {
+    const grouped: Record<TaskHorizon, Task[]> = {
+      today: [],
+      week: [],
+      month: [],
+      year: [],
+      life: [],
+    };
+
+    for (const task of tasks) {
+      grouped[task.horizon].push(task);
+    }
+
+    return grouped;
+  }, [tasks]);
 
   const nextTheme = theme === "dark" ? "light" : "dark";
 
@@ -257,6 +311,58 @@ export default function App() {
     return added;
   }
 
+  function openTask(taskId: string) {
+    returnFocusTaskId.current = taskId;
+    startTransition(() => setSelectedTaskId(taskId));
+  }
+
+  function closeTask() {
+    startTransition(() => setSelectedTaskId(null));
+  }
+
+  function registerTaskOpenButton(
+    taskId: string,
+    element: HTMLButtonElement | null,
+  ) {
+    if (element === null) {
+      taskOpenButtons.current.delete(taskId);
+    } else {
+      taskOpenButtons.current.set(taskId, element);
+    }
+  }
+
+  async function saveTaskDescription(
+    taskId: string,
+    description: string,
+  ): Promise<boolean> {
+    const saved = await updateTaskDescriptionOnServer(taskId, description);
+    if (saved) {
+      toast.success("Description saved");
+    } else {
+      toast.error("Could not save description", {
+        description: "Try again.",
+        duration: Number.POSITIVE_INFINITY,
+      });
+    }
+    return saved;
+  }
+
+  useEffect(() => {
+    if (selectedTaskId !== null || returnFocusTaskId.current === null) {
+      return;
+    }
+
+    const taskId = returnFocusTaskId.current;
+    taskOpenButtons.current.get(taskId)?.focus();
+    returnFocusTaskId.current = null;
+  }, [selectedTaskId]);
+
+  useEffect(() => {
+    if (selectedTaskId !== null && selectedTask === null) {
+      startTransition(() => setSelectedTaskId(null));
+    }
+  }, [selectedTask, selectedTaskId]);
+
   function clearRemovingTask(taskId: string) {
     setRemovingTasks((currentTasks) => {
       const remainingTasks = { ...currentTasks };
@@ -302,78 +408,256 @@ export default function App() {
       onToggleSound={() => setSoundEnabled((enabled) => !enabled)}
     />
   );
+  const toastLayer = (
+    <Toaster
+      theme={theme}
+      position="bottom-center"
+      closeButton
+      toastOptions={{ duration: 3_500 }}
+    />
+  );
 
   if (loading) {
     return (
-      <main className="app app-state">
-        <section className="app-state__content" aria-labelledby="loading-title">
-          <h1 className="app-state__title" id="loading-title">Horizons</h1>
-          <div className="app-loading">
-            <TwinOrbit label="Loading your horizons" />
-            <p className="app-state__message" aria-hidden="true">
-              Loading your horizons…
-            </p>
-          </div>
-        </section>
-        {utilityControls}
-      </main>
+      <>
+        <main className="app app-state">
+          <section className="app-state__content" aria-labelledby="loading-title">
+            <h1 className="app-state__title" id="loading-title">
+              Horizons
+            </h1>
+            <div className="app-loading">
+              <TwinOrbit label="Loading your horizons" />
+              <p className="app-state__message" aria-hidden="true">
+                Loading your horizons…
+              </p>
+            </div>
+          </section>
+          {utilityControls}
+        </main>
+        {toastLayer}
+      </>
     );
   }
 
   if (unauthenticated) {
-    return <SignedOutState utilityControls={utilityControls} />;
+    return (
+      <>
+        <SignedOutState utilityControls={utilityControls} />
+        {toastLayer}
+      </>
+    );
   }
 
   if (error !== null && tasks.length === 0) {
     return (
-      <main className="app app-state">
-        <section className="app-state__content" aria-labelledby="error-title">
-          <h1 className="app-state__title" id="error-title">
-            Horizons is unavailable
-          </h1>
-          <p className="app-state__message">{error}</p>
-          <button className="app-state__action" type="button" onClick={retry}>
-            Try again
-          </button>
-        </section>
-        {utilityControls}
-      </main>
+      <>
+        <main className="app app-state">
+          <section className="app-state__content" aria-labelledby="error-title">
+            <h1 className="app-state__title" id="error-title">
+              Horizons is unavailable
+            </h1>
+            <p className="app-state__message">{error}</p>
+            <button className="app-state__action" type="button" onClick={retry}>
+              Try again
+            </button>
+          </section>
+          {utilityControls}
+        </main>
+        {toastLayer}
+      </>
     );
   }
 
   return (
-    <main className="app" aria-busy={busy}>
-      <h1 className="visually-hidden" id="app-title">
-        Tasks
-      </h1>
-      <div className="workspace" aria-label="Task horizons">
-        {horizons.map((horizon) => {
-          const horizonTasks = tasks.filter(
-            (task) => task.horizon === horizon.id,
-          );
-
-          return (
-            <HorizonColumn
-              key={horizon.id}
-              {...horizon}
-              tasks={horizonTasks}
-              removingTasks={removingTasks}
-              onAddTask={addTask}
-              onRequestRemoval={requestTaskRemoval}
+    <>
+      <main className="app" aria-busy={busy}>
+        <h1 className="visually-hidden" id="app-title">
+          Tasks
+        </h1>
+        <ViewTransition default="none">
+          <Activity mode={selectedTask === null ? "visible" : "hidden"}>
+            <div className="workspace" aria-label="Task horizons">
+              {horizons.map((horizon) => (
+                <HorizonColumn
+                  key={horizon.id}
+                  {...horizon}
+                  tasks={tasksByHorizon[horizon.id]}
+                  removingTasks={removingTasks}
+                  onAddTask={addTask}
+                  onOpenTask={openTask}
+                  onRequestRemoval={requestTaskRemoval}
+                  registerTaskOpenButton={registerTaskOpenButton}
+                />
+              ))}
+            </div>
+          </Activity>
+          {selectedTask !== null && (
+            <TaskDetail
+              key={selectedTask.id}
+              task={selectedTask}
+              onClose={closeTask}
+              onSaveDescription={saveTaskDescription}
             />
-          );
-        })}
-      </div>
-      {error !== null && (
-        <div className="app-error" role="alert">
-          <span>{error}</span>
-          <button type="button" onClick={retry}>
-            Retry
+          )}
+        </ViewTransition>
+        {error !== null && (
+          <div className="app-error" role="alert">
+            <span>{error}</span>
+            <button type="button" onClick={retry}>
+              Retry
+            </button>
+          </div>
+        )}
+        {utilityControls}
+      </main>
+      {toastLayer}
+    </>
+  );
+}
+
+type TaskDetailProps = {
+  task: Task;
+  onClose: () => void;
+  onSaveDescription: (taskId: string, description: string) => Promise<boolean>;
+};
+
+function TaskDetail({ task, onClose, onSaveDescription }: TaskDetailProps) {
+  const [draft, setDraft] = useState(task.description);
+  const [serverDescription, setServerDescription] = useState(task.description);
+  const [saving, setSaving] = useState(false);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+  const handleCloseRef = useRef<() => void>(() => undefined);
+  const titleId = `task-detail-title-${task.id}`;
+  const descriptionId = `task-detail-description-${task.id}`;
+  const descriptionHintId = `task-detail-description-hint-${task.id}`;
+
+  useEffect(() => {
+    closeButtonRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    setDraft((currentDraft) => (
+      currentDraft.trim() === serverDescription
+        ? task.description
+        : currentDraft
+    ));
+    setServerDescription(task.description);
+  }, [serverDescription, task.description]);
+
+  async function saveDescription(closeAfterSave = false): Promise<boolean> {
+    const description = draft.trim();
+    if (description === serverDescription) {
+      if (closeAfterSave) {
+        onClose();
+      }
+      return true;
+    }
+
+    setSaving(true);
+    let saved = false;
+    try {
+      saved = await onSaveDescription(task.id, description);
+    } finally {
+      setSaving(false);
+    }
+
+    if (saved) {
+      setDraft(description);
+      setServerDescription(description);
+      if (closeAfterSave) {
+        onClose();
+      }
+    }
+
+    return saved;
+  }
+
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    void saveDescription();
+  }
+
+  function handleClose() {
+    if (!saving) {
+      void saveDescription(true);
+    }
+  }
+
+  handleCloseRef.current = handleClose;
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        handleCloseRef.current();
+      }
+    }
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  return (
+    <ViewTransition
+      enter="task-detail-enter"
+      exit="task-detail-exit"
+      default="none"
+    >
+      <section className="task-detail" aria-labelledby={titleId}>
+        <header className="task-detail__header">
+          <p className="task-detail__eyebrow">Task details</p>
+          <ViewTransition
+            name={`task-title-${task.id}`}
+            share="text-morph"
+            default="none"
+          >
+            <h2 className="task-detail__title" id={titleId}>
+              {task.text}
+            </h2>
+          </ViewTransition>
+          <button
+            ref={closeButtonRef}
+            className="task-detail__close"
+            type="button"
+            onClick={handleClose}
+            disabled={saving}
+            aria-label="Save and close task details"
+          >
+            {saving ? "Saving…" : "Done"}
           </button>
-        </div>
-      )}
-      {utilityControls}
-    </main>
+        </header>
+
+        <form
+          className="task-detail__form"
+          aria-busy={saving}
+          onSubmit={handleSubmit}
+        >
+          <label className="task-detail__label" htmlFor={descriptionId}>
+            Description
+          </label>
+          <textarea
+            className="task-detail__textarea"
+            id={descriptionId}
+            value={draft}
+            maxLength={4_000}
+            aria-describedby={descriptionHintId}
+            placeholder="What is this for, and why does it matter?"
+            onChange={(event) => setDraft(event.currentTarget.value)}
+            disabled={saving}
+          />
+          <p className="task-detail__hint" id={descriptionHintId}>
+            Add context to help your future self take the next step.
+          </p>
+          <button
+            className="task-detail__save"
+            type="submit"
+            disabled={saving || draft.trim() === serverDescription}
+          >
+            {saving ? "Saving…" : "Save description"}
+          </button>
+        </form>
+      </section>
+    </ViewTransition>
   );
 }
 

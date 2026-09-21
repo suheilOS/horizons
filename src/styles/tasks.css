@@ -187,7 +187,29 @@
   scale: 0.96;
 }
 
+.task-row__open {
+  display: block;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-align: start;
+}
+
+.task-row__open:focus-visible {
+  border-radius: var(--radius-control);
+  outline: 2px solid var(--focus);
+  outline-offset: 3px;
+}
+
+.task-row__open:active {
+  scale: 0.99;
+}
+
 .task-row__text {
+  display: block;
   min-width: 0;
   color: var(--text);
   font-size: 0.9375rem;

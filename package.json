@@ -17,16 +17,17 @@
     "@base-ui/react": "^1.7.0",
     "@fontsource/open-runde": "^5.2.1",
     "hono": "^4.13.3",
-    "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "sonner": "^2.0.8"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.53.1",
     "@cloudflare/vitest-plugin": "^1.0.0",
     "@eslint/js": "^9.30.1",
     "@types/node": "^26.2.0",
-    "@types/react": "^19.1.8",
-    "@types/react-dom": "^19.1.6",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "^4.6.0",
     "eslint": "^9.30.1",
     "eslint-plugin-react-hooks": "^5.2.0",

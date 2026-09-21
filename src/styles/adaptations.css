@@ -41,6 +41,7 @@
 
   .task-entry__submit,
   .task-row__checkbox,
+  .task-row__open,
   .task-row__delete,
   .utility-toggle,
   .app-state__action {
@@ -56,6 +57,7 @@
 
   .task-entry__submit:active,
   .task-row__checkbox:active,
+  .task-row__open:active,
   .task-row__delete:active,
   .utility-toggle:active {
     scale: 1;
